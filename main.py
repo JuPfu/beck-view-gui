@@ -106,8 +106,7 @@ class Preferences(ttk.Frame):
         s = ttk.Style()
         s.configure('beck-view-gui.TCheckbutton', font=('Helvetica', 16))
         s.map('beck-view-gui.TCheckbutton',
-              font=[('focus', ('Helvetica', 16, 'italic'))]
-              )
+              font=[('focus', ('Helvetica', 16, 'italic'))])
 
         self.monitor_checkbutton = ttk.Checkbutton(self, text="Monitor-Fenster anzeigen",
                                                    onvalue=True, offvalue=False,
@@ -224,27 +223,25 @@ class App(ttk.Window):
     def button_callback(self):
         args = []
         # Spawn subprocess with configured command line options
-        print(f"{self.group_layout.preferences.device.get()=}")
         if self.group_layout.preferences.device.get() != '0':
             args.append("-d")
             args.append(self.group_layout.preferences.device.get())
-        print(f"{self.group_layout.preferences.monitor_checkbutton.state()[0]=}")
+
         if self.group_layout.preferences.monitor_checkbutton.state()[0] == "selected":
             args.append("-s")
-        print(f"{self.group_layout.directory_dialog.directory_path.get()=}")
+
         args.append("-o")
         args.append(self.group_layout.directory_dialog.directory_path.get())
 
         emergency_stop = self.group_layout.technical_attributes.spule_counter.get().split(" ")[0]
-        print(f"{self.group_layout.technical_attributes.spule_counter.get()=}")
-        print(f"{emergency_stop=}")
+
         if emergency_stop != "7250":
             args.append("-m")
             args.append(emergency_stop)
         if self.group_layout.technical_attributes.batch.get() != '8':
             args.append("-c")
             args.append(self.group_layout.technical_attributes.batch.get())
-        print(f"{args=}")
+
         command_line_args = ["beck-view-digitize", "-o", self.group_layout.directory_dialog.directory_path.get()]
         subprocess.Popen(command_line_args)
         exit(0)
