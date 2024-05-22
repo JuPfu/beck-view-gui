@@ -105,15 +105,19 @@ class Preferences(ttk.Frame):
 
         s = ttk.Style()
         s.configure('beck-view-gui.TCheckbutton', font=('Helvetica', 16))
+        s.map('beck-view-gui.TCheckbutton',
+              font=[('focus', ('Helvetica', 16, 'italic'))]
+              )
 
         self.monitor_checkbutton = ttk.Checkbutton(self, text="Monitor-Fenster anzeigen",
                                                    onvalue=True, offvalue=False,
-                                                   style='beck-view-gui.TCheckbutton')
+                                                   style='beck-view-gui.TCheckbutton'
+                                                   )
 
         self.monitor_checkbutton.grid(row=1, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
         ToolTip(self.monitor_checkbutton,
                 text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.\nReduziert die "
-                     "maximal mögliche Digitalisierungsgeschwindigkeit.",
+                     "Digitalisierungs-geschwindigkeit.",
                 bootstyle="INFO, INVERSE")
         self.monitor_checkbutton.invoke()
 
@@ -224,7 +228,7 @@ class App(ttk.Window):
         if self.group_layout.preferences.device.get() != '0':
             args.append("-d")
             args.append(self.group_layout.preferences.device.get())
-        print(f"{self.group_layout.preferences.monitor_checkbutton.state()=}")
+        print(f"{self.group_layout.preferences.monitor_checkbutton.state()[0]=}")
         if self.group_layout.preferences.monitor_checkbutton.state()[0] == "selected":
             args.append("-s")
         print(f"{self.group_layout.directory_dialog.directory_path.get()=}")
