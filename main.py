@@ -221,7 +221,7 @@ class App(ttk.Window):
         self.button.grid(row=3, column=0, padx=10, pady=10, sticky="ewn")
 
     def button_callback(self):
-        args = []
+        args = ["beck-view-digitize"]
         # Spawn subprocess with configured command line options
         if self.group_layout.preferences.device.get() != '0':
             args.append("-d")
@@ -242,8 +242,11 @@ class App(ttk.Window):
             args.append("-c")
             args.append(self.group_layout.technical_attributes.batch.get())
 
-        command_line_args = ["beck-view-digitize", "-o", self.group_layout.directory_dialog.directory_path.get()]
-        subprocess.Popen(command_line_args)
+        try:
+            subprocess.Popen(args)
+        except Exception as e:
+            print(f"Subprocess started: {args}")
+            print(f"Error starting 'beck-view-digitize': {e}")
         exit(0)
 
 
