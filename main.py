@@ -221,31 +221,28 @@ class App(ttk.Window):
         self.button.grid(row=3, column=0, padx=10, pady=10, sticky="ewn")
 
     def button_callback(self):
-        args = ["beck-view-digitize"]
+        args = ["../beck-view-digitalize/beck-view-digitize"]
         # Spawn subprocess with configured command line options
         if self.group_layout.preferences.device.get() != '0':
-            args.append("-d")
-            args.append(self.group_layout.preferences.device.get())
+            args.append(f"-d {self.group_layout.preferences.device.get()}")
 
         if self.group_layout.preferences.monitor_checkbutton.state()[0] == "selected":
             args.append("-s")
 
-        args.append("-o")
-        args.append(self.group_layout.directory_dialog.directory_path.get())
+        args.append(f"-o {self.group_layout.directory_dialog.directory_path.get()}")
 
         emergency_stop = self.group_layout.technical_attributes.spule_counter.get().split(" ")[0]
 
         if emergency_stop != "7250":
-            args.append("-m")
-            args.append(emergency_stop)
+            args.append(f"-m {emergency_stop}")
         if self.group_layout.technical_attributes.batch.get() != '8':
-            args.append("-c")
-            args.append(self.group_layout.technical_attributes.batch.get())
+            args.append(f"-c {self.group_layout.technical_attributes.batch.get()}")
 
         try:
-            subprocess.Popen(args)
-        except Exception as e:
             print(f"Subprocess started: {args}")
+            p = subprocess.run(args)
+            print(f"{p=}")
+        except Exception as e:
             print(f"Error starting 'beck-view-digitize': {e}")
         exit(0)
 
