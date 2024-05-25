@@ -59,19 +59,21 @@ class TechnicalAttributes(ttk.Frame):
                                              font=("Helvetica", 16),
                                              text="Maximale Anzahl Bilder")
         self.spule_counter_label.grid(row=row, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.spule_counter_values = ["100",
-                                     "300",
-                                     "500",
-                                     "3650 (15-m-Kassette)",
-                                     "7250 (30-m-Kassette)",
-                                     "11000"]
+        self.spule_counter_values = [
+            "3600 (15-m-Kassette)",
+            "7200 (30-m-Kassette)",
+            "14400 (60-m-Kassette)",
+            "21800 (90-m-Kassette)",
+            "43600 (180-m-Kassette)",
+            "60000 (250-m-Kassette)"
+        ]
         self.spule_counter = ttk.Combobox(self,
                                           font=("Helvetica", 16),
                                           values=self.spule_counter_values,
                                           state=ttk.READONLY)
 
         self.spule_counter.grid(row=row, column=1, padx=(0, 10), pady=(10, 10), sticky="ew")
-        self.spule_counter.current(4)
+        self.spule_counter.current(1)
         ToolTip(self.spule_counter,
                 text="Notbremse - beendet die Digitalisierung spätestens bei Erreichen der ausgewählten Anzahl Bilder.",
                 bootstyle="INFO, INVERSE")
@@ -233,15 +235,16 @@ class App(ttk.Window):
 
         emergency_stop = self.group_layout.technical_attributes.spule_counter.get().split(" ")[0]
 
-        if emergency_stop != "7250":
+        if emergency_stop != self.group_layout.technical_attributes.spule_counter_values[1].split(" ")[0]:
             args.append(f"-m {emergency_stop}")
+            
         if self.group_layout.technical_attributes.batch.get() != '8':
             args.append(f"-c {self.group_layout.technical_attributes.batch.get()}")
 
         try:
             print(f"Subprocess started: {args}")
-            p = subprocess.run(args)
-            print(f"{p=}")
+            p = subprocess.call(args)
+            print(f"{p}")
         except Exception as e:
             print(f"Error starting 'beck-view-digitize': {e}")
         exit(0)
