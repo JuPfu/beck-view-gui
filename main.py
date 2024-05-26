@@ -1,6 +1,7 @@
 import os
 import subprocess
 import tkinter
+from pathlib import Path
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
@@ -223,7 +224,8 @@ class App(ttk.Window):
         self.button.grid(row=3, column=0, padx=10, pady=10, sticky="ewn")
 
     def button_callback(self):
-        args = ["../beck-view-digitalize/beck-view-digitize"]
+        filepath = Path.home().joinpath('PycharmProjects', 'beck-view-digitalize', 'beck-view-digitize.cmd')
+        args = [str(filepath)]
         # Spawn subprocess with configured command line options
         if self.group_layout.preferences.device.get() != '0':
             args.append(f"-d {self.group_layout.preferences.device.get()}")
@@ -237,13 +239,13 @@ class App(ttk.Window):
 
         if emergency_stop != self.group_layout.technical_attributes.spule_counter_values[1].split(" ")[0]:
             args.append(f"-m {emergency_stop}")
-            
+
         if self.group_layout.technical_attributes.batch.get() != '8':
             args.append(f"-c {self.group_layout.technical_attributes.batch.get()}")
 
         try:
             print(f"Subprocess started: {args}")
-            p = subprocess.call(args)
+            p = subprocess.run(args)
             print(f"{p}")
         except Exception as e:
             print(f"Error starting 'beck-view-digitize': {e}")
