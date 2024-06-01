@@ -1,5 +1,5 @@
 import os
-import subprocess
+import shlex, subprocess
 import tkinter
 from pathlib import Path
 
@@ -111,41 +111,19 @@ class Preferences(ttk.Frame):
         s.map('beck-view-gui.TCheckbutton',
               font=[('focus', ('Helvetica', 16, 'italic'))])
 
-        self.fh = tkinter.StringVar()
-        self.flip_horizontal_checkbutton = ttk.Checkbutton(self, text="Horizontal spiegeln",
-                                                           onvalue=True, offvalue=False,
-                                                           variable=self.fh,
-                                                           style='beck-view-gui.TCheckbutton'
-                                                           )
-        self.fh.set("False")
-        self.flip_horizontal_checkbutton.grid(row=1, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
-        ToolTip(self.flip_horizontal_checkbutton,
-                text="Alle Bilder an der horizontalen Achse spiegeln.",
-                bootstyle="INFO, INVERSE")
-
-        self.fv = tkinter.StringVar()
-        self.flip_vertical_checkbutton = ttk.Checkbutton(self, text="Vertikal spiegeln",
-                                                         onvalue=True, offvalue=False,
-                                                         variable=self.fv,
-                                                         style='beck-view-gui.TCheckbutton',
-                                                         )
-        self.fv.set("False")
-        self.flip_vertical_checkbutton.grid(row=1, column=1, padx=(0, 0), pady=(10, 10), sticky="ew")
-        ToolTip(self.flip_vertical_checkbutton,
-                text="Alle Bilder an der vertikalen Achse spiegeln.",
-                bootstyle="INFO, INVERSE")
-
+        self.monitor = tkinter.StringVar()
         self.monitor_checkbutton = ttk.Checkbutton(self, text="Monitor-Fenster anzeigen",
                                                    onvalue=True, offvalue=False,
+                                                   variable=self.monitor,
                                                    style='beck-view-gui.TCheckbutton'
                                                    )
 
-        self.monitor_checkbutton.grid(row=2, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
+        self.monitor_checkbutton.grid(row=1, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
         ToolTip(self.monitor_checkbutton,
                 text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.\nReduziert die "
                      "Digitalisierungs-geschwindigkeit.",
                 bootstyle="INFO, INVERSE")
-        self.monitor_checkbutton.invoke()
+        self.monitor.set("True")
 
 
 class MainMenu(ttk.Menu):
@@ -248,22 +226,17 @@ class App(ttk.Window):
         self.button.grid(row=3, column=0, padx=10, pady=10, sticky="ewn")
 
     def button_callback(self):
-        filepath = Path.home().joinpath('PycharmProjects', 'beck-view-digitalize', 'beck-view-digitize.cmd')
+        filepath = Path.home().joinpath('PycharmProjects', 'beck-view-digitalize', 'beck-view-digitize')
         args = [str(filepath)]
         # Spawn subprocess with configured command line options
         if self.group_layout.preferences.device.get() != '0':
             args.append(f"-d {self.group_layout.preferences.device.get()}")
 
-        if self.group_layout.preferences.monitor_checkbutton.state()[0] == "selected":
+        if self.group_layout.preferences.monitor.get():
             args.append("-s")
 
-        if self.group_layout.preferences.flip_horizontal_checkbutton.state()[0] == "selected":
-            args.append("-fh")
-
-        if self.group_layout.preferences.flip_vertical_checkbutton.state()[0] == "selected":
-            args.append("-fv")
-
-        args.append(f"-o {self.group_layout.directory_dialog.directory_path.get()}")
+        args.append("-o")
+        args.append(f"{self.group_layout.directory_dialog.directory_path.get()}")
 
         emergency_stop = self.group_layout.technical_attributes.spule_counter.get().split(" ")[0]
 
@@ -275,10 +248,12 @@ class App(ttk.Window):
 
         try:
             print(f"Subprocess started: {args}")
-            p = subprocess.run(args)
-            print(f"{p}")
+            p = subprocess.call(args)
+            print(f"Subprocess finished {p.returncode}")
         except Exception as e:
             print(f"Error starting 'beck-view-digitize': {e}")
+        finally:
+            print("FINALLY")
         exit(0)
 
 
