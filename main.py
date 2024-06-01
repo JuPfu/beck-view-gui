@@ -59,7 +59,7 @@ class TechnicalAttributes(ttk.Frame):
         self.spule_counter_label = ttk.Label(self,
                                              font=("Helvetica", 16),
                                              text="Maximale Anzahl Bilder")
-        self.spule_counter_label.grid(row=row, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
+        self.spule_counter_label.grid(row=row, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
         self.spule_counter_values = [
             "3600 (15-m-Kassette)",
             "7200 (30-m-Kassette)",
@@ -73,7 +73,7 @@ class TechnicalAttributes(ttk.Frame):
                                           values=self.spule_counter_values,
                                           state=ttk.READONLY)
 
-        self.spule_counter.grid(row=row, column=1, padx=(0, 10), pady=(10, 10), sticky="ew")
+        self.spule_counter.grid(row=row, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
         self.spule_counter.current(1)
         ToolTip(self.spule_counter,
                 text="Notbremse - beendet die Digitalisierung spätestens bei Erreichen der ausgewählten Anzahl Bilder.",
@@ -81,9 +81,9 @@ class TechnicalAttributes(ttk.Frame):
 
         row += 1
         self.batch_label = ttk.Label(self, font=("Helvetica", 16), text="Parallele Anzahl Bilder")
-        self.batch_label.grid(row=row, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
+        self.batch_label.grid(row=row, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
         self.batch = ttk.Spinbox(self, font=("Helvetica", 16), from_=1, to=100, state=ttk.READONLY)
-        self.batch.grid(row=row, column=1, padx=(0, 10), pady=(10, 10), sticky="ew")
+        self.batch.grid(row=row, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
         self.batch.set(8)
         ToolTip(self.batch,
                 text="Anzahl Bilder die in einem `Paket`parallel verarbeitet werden. Beeinflusst die "
@@ -111,12 +111,36 @@ class Preferences(ttk.Frame):
         s.map('beck-view-gui.TCheckbutton',
               font=[('focus', ('Helvetica', 16, 'italic'))])
 
+        self.fh = tkinter.StringVar()
+        self.flip_horizontal_checkbutton = ttk.Checkbutton(self, text="Horizontal spiegeln",
+                                                           onvalue=True, offvalue=False,
+                                                           variable=self.fh,
+                                                           style='beck-view-gui.TCheckbutton'
+                                                           )
+        self.fh.set("False")
+        self.flip_horizontal_checkbutton.grid(row=1, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
+        ToolTip(self.flip_horizontal_checkbutton,
+                text="Alle Bilder an der horizontalen Achse spiegeln.",
+                bootstyle="INFO, INVERSE")
+
+        self.fv = tkinter.StringVar()
+        self.flip_vertical_checkbutton = ttk.Checkbutton(self, text="Vertikal spiegeln",
+                                                         onvalue=True, offvalue=False,
+                                                         variable=self.fv,
+                                                         style='beck-view-gui.TCheckbutton',
+                                                         )
+        self.fv.set("False")
+        self.flip_vertical_checkbutton.grid(row=1, column=1, padx=(0, 0), pady=(10, 10), sticky="ew")
+        ToolTip(self.flip_vertical_checkbutton,
+                text="Alle Bilder an der vertikalen Achse spiegeln.",
+                bootstyle="INFO, INVERSE")
+
         self.monitor_checkbutton = ttk.Checkbutton(self, text="Monitor-Fenster anzeigen",
                                                    onvalue=True, offvalue=False,
                                                    style='beck-view-gui.TCheckbutton'
                                                    )
 
-        self.monitor_checkbutton.grid(row=1, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
+        self.monitor_checkbutton.grid(row=2, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
         ToolTip(self.monitor_checkbutton,
                 text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.\nReduziert die "
                      "Digitalisierungs-geschwindigkeit.",
@@ -232,6 +256,12 @@ class App(ttk.Window):
 
         if self.group_layout.preferences.monitor_checkbutton.state()[0] == "selected":
             args.append("-s")
+
+        if self.group_layout.preferences.flip_horizontal_checkbutton.state()[0] == "selected":
+            args.append("-fh")
+
+        if self.group_layout.preferences.flip_vertical_checkbutton.state()[0] == "selected":
+            args.append("-fv")
 
         args.append(f"-o {self.group_layout.directory_dialog.directory_path.get()}")
 
