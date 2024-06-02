@@ -1,5 +1,5 @@
 import os
-import shlex, subprocess
+import subprocess
 import tkinter
 from pathlib import Path
 
@@ -56,30 +56,7 @@ class TechnicalAttributes(ttk.Frame):
         super().__init__(master)
         self.configure(borderwidth=3, relief=SOLID)
         row = 0
-        self.spule_counter_label = ttk.Label(self,
-                                             font=("Helvetica", 16),
-                                             text="Maximale Anzahl Bilder")
-        self.spule_counter_label.grid(row=row, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
-        self.spule_counter_values = [
-            "3600 (15-m-Kassette)",
-            "7200 (30-m-Kassette)",
-            "14400 (60-m-Kassette)",
-            "21800 (90-m-Kassette)",
-            "43600 (180-m-Kassette)",
-            "60000 (250-m-Kassette)"
-        ]
-        self.spule_counter = ttk.Combobox(self,
-                                          font=("Helvetica", 16),
-                                          values=self.spule_counter_values,
-                                          state=ttk.READONLY)
 
-        self.spule_counter.grid(row=row, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.spule_counter.current(1)
-        ToolTip(self.spule_counter,
-                text="Notbremse - beendet die Digitalisierung spätestens bei Erreichen der ausgewählten Anzahl Bilder.",
-                bootstyle="INFO, INVERSE")
-
-        row += 1
         self.batch_label = ttk.Label(self, font=("Helvetica", 16), text="Parallele Anzahl Bilder")
         self.batch_label.grid(row=row, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
         self.batch = ttk.Spinbox(self, font=("Helvetica", 16), from_=1, to=100, state=ttk.READONLY)
@@ -97,13 +74,40 @@ class Preferences(ttk.Frame):
 
         self.configure(borderwidth=3, relief=SOLID)
 
+        self.logo = ttk.PhotoImage(file="beck-view-logo.png")
+        self.logo_label = ttk.Label(self, image=self.logo)
+        self.logo_label.grid(row=0, column=0, rowspan=3, padx=(10, 0), pady=(10, 10), sticky="ew")
+
         self.device_label = ttk.Label(self, font=("Helvetica", 16), text="Gerätenummer der Kamera")
-        self.device_label.grid(row=0, column=0, padx=(10, 0), sticky="ew")
+        self.device_label.grid(row=0, column=1, padx=(10, 0), pady=(10, 10), sticky="nw")
         self.device = ttk.Spinbox(self, font=("Helvetica", 16), from_=0, to=9, state=ttk.READONLY)
-        self.device.grid(row=0, column=1, padx=(0, 10), pady=(10, 10), sticky="ew")
+        self.device.grid(row=0, column=2, padx=(0, 10), pady=(10, 10), sticky="nw")
         self.device.set(0)
         ToolTip(self.device,
                 text="Vom System vergebene Geräte-Id.\nZulässiger Wertebereich ist 0 bis 9.",
+                bootstyle="INFO, INVERSE")
+
+        self.frame_counter_label = ttk.Label(self,
+                                             font=("Helvetica", 16),
+                                             text="Maximale Anzahl Bilder")
+        self.frame_counter_label.grid(row=1, column=1, padx=(10, 0), pady=(10, 10), sticky="ew")
+        self.frame_counter_values = [
+            "3600 (15-m-Kassette)",
+            "7200 (30-m-Kassette)",
+            "14400 (60-m-Kassette)",
+            "21800 (90-m-Kassette)",
+            "43600 (180-m-Kassette)",
+            "60000 (250-m-Kassette)"
+        ]
+        self.frame_counter = ttk.Combobox(self,
+                                          font=("Helvetica", 16),
+                                          values=self.frame_counter_values,
+                                          state=ttk.READONLY)
+
+        self.frame_counter.grid(row=1, column=2, padx=(0, 10), pady=(10, 10), sticky="w")
+        self.frame_counter.current(1)
+        ToolTip(self.frame_counter,
+                text="Notbremse - beendet die Digitalisierung spätestens bei Erreichen der ausgewählten Anzahl Bilder.",
                 bootstyle="INFO, INVERSE")
 
         s = ttk.Style()
@@ -118,7 +122,7 @@ class Preferences(ttk.Frame):
                                                    style='beck-view-gui.TCheckbutton'
                                                    )
 
-        self.monitor_checkbutton.grid(row=1, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
+        self.monitor_checkbutton.grid(row=2, column=1, padx=(10, 0), pady=(15, 10), sticky="w")
         ToolTip(self.monitor_checkbutton,
                 text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.\nReduziert die "
                      "Digitalisierungs-geschwindigkeit.",
@@ -227,24 +231,26 @@ class App(ttk.Window):
 
     def button_callback(self):
         filepath = Path.home().joinpath('PycharmProjects', 'beck-view-digitalize', 'beck-view-digitize')
-        args = [str(filepath)]
+        args = [str(filepath)]  # path to executable
+
         # Spawn subprocess with configured command line options
         if self.group_layout.preferences.device.get() != '0':
-            args.append(f"-d {self.group_layout.preferences.device.get()}")
+            args.append("--device")
+            args.append(f"{self.group_layout.preferences.device.get()}")
+
+        emergency_stop = self.group_layout.preferences.frame_counter.get().split(" ")[0]
+        args.append("--max-count")
+        args.append(f"{emergency_stop}")
 
         if self.group_layout.preferences.monitor.get():
-            args.append("-s")
+            args.append("--show_monitor")
 
-        args.append("-o")
+        args.append("--output-path")
         args.append(f"{self.group_layout.directory_dialog.directory_path.get()}")
 
-        emergency_stop = self.group_layout.technical_attributes.spule_counter.get().split(" ")[0]
-
-        if emergency_stop != self.group_layout.technical_attributes.spule_counter_values[1].split(" ")[0]:
-            args.append(f"-m {emergency_stop}")
-
         if self.group_layout.technical_attributes.batch.get() != '8':
-            args.append(f"-c {self.group_layout.technical_attributes.batch.get()}")
+            args.append("--chunk-size")
+            args.append(f"{self.group_layout.technical_attributes.batch.get()}")
 
         try:
             print(f"Subprocess started: {args}")
