@@ -254,13 +254,20 @@ class App(ttk.Window):
 
         try:
             print(f"Subprocess started: {args}")
-            p = subprocess.call(args)
-            print(f"Subprocess finished {p.returncode}")
+            if self.button.cget('text') == "Start Digitalisierung":
+                self.button.configure(text="Stop", style='beck-view-gui.TButton')
+                self.button.configure(bootstyle="danger")  # Change button color to red
+                # Start the subprocess
+                self.p = subprocess.Popen(args)
+            else:
+                # If button text is "Stop", kill the subprocess
+                self.button.configure(text="Start Digitalisierung", style='beck-view-gui.TButton')
+                self.button.configure(bootstyle="primary")  # Change button color back to default
+                self.p.kill()
         except Exception as e:
             print(f"Error starting 'beck-view-digitize': {e}")
         finally:
             print("FINALLY")
-        exit(0)
 
 
 if __name__ == '__main__':
