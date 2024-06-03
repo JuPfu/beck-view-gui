@@ -5,6 +5,7 @@ from pathlib import Path
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+from ttkbootstrap.scrolled import ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 
 
@@ -115,7 +116,8 @@ class Preferences(ttk.Frame):
         s.map('beck-view-gui.TCheckbutton',
               font=[('focus', ('Helvetica', 16, 'italic'))])
 
-        self.monitor = tkinter.StringVar()
+        self.monitor = tkinter.BooleanVar()
+        self.monitor.set(False)
         self.monitor_checkbutton = ttk.Checkbutton(self, text="Monitor-Fenster anzeigen",
                                                    onvalue=True, offvalue=False,
                                                    variable=self.monitor,
@@ -127,7 +129,6 @@ class Preferences(ttk.Frame):
                 text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.\nReduziert die "
                      "Digitalisierungs-geschwindigkeit.",
                 bootstyle="INFO, INVERSE")
-        self.monitor.set("True")
 
 
 class MainMenu(ttk.Menu):
@@ -174,21 +175,21 @@ class GroupLayout(ttk.Frame):
         self.technical_attributes.grid(row=2, column=0, padx=10, pady=10, sticky="ewn")
 
 
-class SplashScreen(tkinter.Toplevel):
+class SplashScreen(ttk.Toplevel):
     def __init__(self):
         super().__init__()
+        self.title("Beck-View")
 
-        self.overrideredirect(True)  # Remove window decorations
+        # self.overrideredirect(True)
+        self.resizable(False, False)
 
-        # Calculate the screen width and height
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
 
-        # Calculate the coordinates to center the splash screen
-        x_coordinate = (screen_width - 1024) // 2
-        y_coordinate = (screen_height - 1024) // 2
+        x_coordinate = int((screen_width / 2) - (1024 / 2))
+        y_coordinate = int((screen_height / 2) - (1024 / 2))
 
-        # Set the position and size of the splash screen
+        # Set the position of the window to the center of the screen
         self.geometry(f"1024x1024+{x_coordinate}+{y_coordinate}")
 
         # Load splash image
@@ -218,7 +219,7 @@ class App(ttk.Window):
         self.group_layout = GroupLayout(self)
         self.group_layout.grid_rowconfigure(0, weight=1)
         self.group_layout.grid_columnconfigure(0, weight=1)
-        self.group_layout.grid(row=0, column=0, padx=0, pady=0, sticky="ewn")
+        self.group_layout.grid(row=0, column=0, padx=0, pady=0, sticky="sewn")
 
         self.group_layout.preferences.device.focus_set()
 
@@ -227,7 +228,12 @@ class App(ttk.Window):
 
         self.button = ttk.Button(self, text="Start Digitalisierung", style='beck-view-gui.TButton',
                                  command=self.button_callback)
-        self.button.grid(row=3, column=0, padx=10, pady=10, sticky="ewn")
+        self.button.grid(row=3, column=0, padx=10, pady=10, sticky="sewn")
+
+        # Create Text widget for displaying subprocess output
+        ttk.utility.enable_high_dpi_awareness()
+        self.text_output = ttk.ScrolledText(self, height=10, font=("Helvetica", 14), wrap=WORD)
+        self.text_output.grid(row=4, column=0, padx=10, pady=10, sticky="ewns")
 
     def button_callback(self):
         filepath = Path.home().joinpath('PycharmProjects', 'beck-view-digitalize', 'beck-view-digitize')
@@ -257,17 +263,43 @@ class App(ttk.Window):
             if self.button.cget('text') == "Start Digitalisierung":
                 self.button.configure(text="Stop", style='beck-view-gui.TButton')
                 self.button.configure(bootstyle="danger")  # Change button color to red
-                # Start the subprocess
-                self.p = subprocess.Popen(args)
+                
+                # Start the subprocess with stdout and stderr redirected to pipes
+                self.p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+                # Start reading subprocess output
+                self.read_subprocess_output()
             else:
                 # If button text is "Stop", kill the subprocess
+                self.p.kill()
                 self.button.configure(text="Start Digitalisierung", style='beck-view-gui.TButton')
                 self.button.configure(bootstyle="primary")  # Change button color back to default
-                self.p.kill()
         except Exception as e:
             print(f"Error starting 'beck-view-digitize': {e}")
-        finally:
-            print("FINALLY")
+
+    def read_subprocess_output(self):
+        """Reads the subprocess output and updates the Text widget."""
+        try:
+            output = self.p.stdout.readline()
+            if output:
+                self.text_output.insert(END, output)
+                self.text_output.see(END)
+
+            error = self.p.stderr.readline()
+            if error:
+                self.text_output.insert(END, error, "stderr")
+                self.text_output.see(END)
+
+            # Continue reading output
+            if self.p.poll() is None:
+                self.after(1000, self.read_subprocess_output)
+            # else:
+            # Subprocess finished
+            # self.button.configure(text="Start Digitalisierung", style='beck-view-gui.TButton')
+            # self.button.configure(bootstyle="primary")  # Change button color back to default
+        except Exception as e:
+            self.text_output.insert(END, f"Error reading subprocess output: {e}\n", "stderr")
+            self.text_output.see(END)
 
 
 if __name__ == '__main__':
