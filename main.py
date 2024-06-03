@@ -104,7 +104,7 @@ class Preferences(ttk.Frame):
                                           values=self.frame_counter_values,
                                           state=ttk.READONLY)
 
-        self.frame_counter.grid(row=1, column=2, padx=(0, 10), pady=(10, 10), sticky="w")
+        self.frame_counter.grid(row=1, column=2, padx=(0, 10), pady=(10, 10), sticky="ew")
         self.frame_counter.current(1)
         ToolTip(self.frame_counter,
                 text="Notbremse - beendet die Digitalisierung spätestens bei Erreichen der ausgewählten Anzahl Bilder.",
@@ -122,7 +122,7 @@ class Preferences(ttk.Frame):
                                                    style='beck-view-gui.TCheckbutton'
                                                    )
 
-        self.monitor_checkbutton.grid(row=2, column=1, padx=(10, 0), pady=(15, 10), sticky="w")
+        self.monitor_checkbutton.grid(row=2, column=1, padx=(10, 0), pady=(15, 10), sticky="ew")
         ToolTip(self.monitor_checkbutton,
                 text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.\nReduziert die "
                      "Digitalisierungs-geschwindigkeit.",
