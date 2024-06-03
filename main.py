@@ -9,7 +9,7 @@ from ttkbootstrap.scrolled import ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 
 
-class FrameOutputDirectory(ttk.Frame):
+class FrameOutputDirectory(ttk.LabelFrame):
     from tkinter.filedialog import askdirectory
 
     @staticmethod
@@ -22,7 +22,7 @@ class FrameOutputDirectory(ttk.Frame):
     def __init__(self, master):
         super().__init__(master)
 
-        self.configure(borderwidth=3, relief=SOLID)
+        self.configure(borderwidth=3, text="Zielordner für digitalisierte Bilder", relief=SOLID)
         self.directory_label = ttk.Label(self, text="Ausgabeverzeichnis", font=("Helvetica", 16))
         self.directory_label.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
         self.directory_path = ttk.Entry(self, font=("Helvetica", 16), takefocus=0)
@@ -38,7 +38,7 @@ class FrameOutputDirectory(ttk.Frame):
                                            command=self.directory_button_callback)
         self.directory_button.grid(row=0, column=2, padx=(10, 10))
         ToolTip(self.directory_button,
-                text="Öffnet den Dialog zur Auswahl des Verzeichnisses in dem die digitalisierten Bilder abgelegt "
+                text="Öffnet den Dialog zur Auswahl des Zielordners in dem die digitalisierten Bilder abgelegt "
                      "werden.",
                 bootstyle="INFO, INVERSE")
 
@@ -52,10 +52,11 @@ class FrameOutputDirectory(ttk.Frame):
         self.directory_path.configure(state=ttk.READONLY)
 
 
-class TechnicalAttributes(ttk.Frame):
+class TechnicalAttributes(ttk.LabelFrame):
     def __init__(self, master):
         super().__init__(master)
-        self.configure(borderwidth=3, relief=SOLID)
+
+        self.configure(borderwidth=3, text="Performance-Tuning", relief=SOLID)
         row = 0
 
         self.batch_label = ttk.Label(self, font=("Helvetica", 16), text="Parallele Anzahl Bilder")
@@ -69,11 +70,11 @@ class TechnicalAttributes(ttk.Frame):
                 bootstyle="INFO, INVERSE")
 
 
-class Preferences(ttk.Frame):
+class Preferences(ttk.LabelFrame):
     def __init__(self, master):
         super().__init__(master)
 
-        self.configure(borderwidth=3, relief=SOLID)
+        self.configure(borderwidth=3, text="Einstellungen", relief=SOLID)
 
         self.logo = ttk.PhotoImage(file="beck-view-logo.png")
         self.logo_label = ttk.Label(self, image=self.logo)
@@ -131,6 +132,21 @@ class Preferences(ttk.Frame):
                 bootstyle="INFO, INVERSE")
 
 
+class SubprocessOutput(ttk.LabelFrame):
+    def __init__(self, master):
+        super().__init__(master)
+
+        self.configure(borderwidth=3, text="Ausgabe `Beck-View-Digitize`",  relief=SOLID)
+
+        # Create ScrolledText widget for displaying subprocess output
+        self.text_output = ScrolledText(self, height=10, font=("Helvetica", 14), wrap=WORD)
+        self.text_output.grid(row=0, column=0, rowspan=10, padx=10, pady=10, sticky=NSEW)
+
+        # Configure grid to make the text_output widget expand
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+
 class MainMenu(ttk.Menu):
     def __init__(self, master):
         super().__init__(master)
@@ -156,23 +172,29 @@ class GroupLayout(ttk.Frame):
 
         # Create other GUI elements
         self.preferences = Preferences(self)
-        self.preferences.grid_rowconfigure(0, weight=1)
         self.preferences.grid_columnconfigure(1, weight=1)
         self.preferences.grid_columnconfigure(0, weight=1)
-        self.preferences.grid(row=0, column=0, padx=10, pady=10, sticky="ewn")
+        self.preferences.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
         self.directory_dialog = FrameOutputDirectory(self)
         self.directory_dialog.grid_rowconfigure(0, weight=1)
         self.directory_dialog.grid_columnconfigure(0, weight=0)
         self.directory_dialog.grid_columnconfigure(1, weight=1)
         self.directory_dialog.grid_columnconfigure(2, weight=0)
-        self.directory_dialog.grid(row=1, column=0, padx=10, pady=10, sticky="ewn")
+        self.directory_dialog.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
 
         self.technical_attributes = TechnicalAttributes(self)
         self.technical_attributes.grid_rowconfigure(0, weight=1)
         self.technical_attributes.grid_columnconfigure(1, weight=1)
         self.technical_attributes.grid_columnconfigure(0, weight=1)
-        self.technical_attributes.grid(row=2, column=0, padx=10, pady=10, sticky="ewn")
+        self.technical_attributes.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+
+        self.subprocess_output = SubprocessOutput(self)
+        self.subprocess_output.grid(row=3, column=0, padx=10, pady=10, sticky=NSEW)
+
+        # Configure grid weights
+        self.grid_rowconfigure(3, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
 
 class SplashScreen(ttk.Toplevel):
@@ -204,7 +226,7 @@ class SplashScreen(ttk.Toplevel):
 
 class App(ttk.Window):
     def __init__(self):
-        super().__init__(title="Beck-View", minsize=[640, 480], themename="superhero")
+        super().__init__(title="Beck-View", minsize=[800, 640], themename="superhero")
 
         # Show splash screen
         SplashScreen()
@@ -217,23 +239,14 @@ class App(ttk.Window):
         self.config(menu=self.menubar)
 
         self.group_layout = GroupLayout(self)
-        self.group_layout.grid_rowconfigure(0, weight=1)
-        self.group_layout.grid_columnconfigure(0, weight=1)
-        self.group_layout.grid(row=0, column=0, padx=0, pady=0, sticky="sewn")
-
-        self.group_layout.preferences.device.focus_set()
+        self.group_layout.grid(row=0, column=0, padx=0, pady=0, sticky=NSEW)
 
         s = ttk.Style()
         s.configure('beck-view-gui.TButton', font=('Helvetica', 16))
 
         self.button = ttk.Button(self, text="Start Digitalisierung", style='beck-view-gui.TButton',
                                  command=self.button_callback)
-        self.button.grid(row=3, column=0, padx=10, pady=10, sticky="sewn")
-
-        # Create Text widget for displaying subprocess output
-        ttk.utility.enable_high_dpi_awareness()
-        self.text_output = ttk.ScrolledText(self, height=10, font=("Helvetica", 14), wrap=WORD)
-        self.text_output.grid(row=4, column=0, padx=10, pady=10, sticky="ewns")
+        self.button.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
 
     def button_callback(self):
         filepath = Path.home().joinpath('PycharmProjects', 'beck-view-digitalize', 'beck-view-digitize')
@@ -259,11 +272,11 @@ class App(ttk.Window):
             args.append(f"{self.group_layout.technical_attributes.batch.get()}")
 
         try:
-            print(f"Subprocess started: {args}")
             if self.button.cget('text') == "Start Digitalisierung":
+                print(f"Subprocess started: {args}")
                 self.button.configure(text="Stop", style='beck-view-gui.TButton')
                 self.button.configure(bootstyle="danger")  # Change button color to red
-                
+
                 # Start the subprocess with stdout and stderr redirected to pipes
                 self.p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
@@ -282,13 +295,13 @@ class App(ttk.Window):
         try:
             output = self.p.stdout.readline()
             if output:
-                self.text_output.insert(END, output)
-                self.text_output.see(END)
+                self.group_layout.subprocess_output.text_output.insert(END, output)
+                self.group_layout.subprocess_output.text_output.see(END)
 
             error = self.p.stderr.readline()
             if error:
-                self.text_output.insert(END, error, "stderr")
-                self.text_output.see(END)
+                self.group_layout.subprocess_output.text_output.insert(END, error, "stderr")
+                self.group_layout.subprocess_output.text_output.see(END)
 
             # Continue reading output
             if self.p.poll() is None:
@@ -298,8 +311,8 @@ class App(ttk.Window):
             # self.button.configure(text="Start Digitalisierung", style='beck-view-gui.TButton')
             # self.button.configure(bootstyle="primary")  # Change button color back to default
         except Exception as e:
-            self.text_output.insert(END, f"Error reading subprocess output: {e}\n", "stderr")
-            self.text_output.see(END)
+            self.group_layout.subprocess_output.text_output.insert(END, f"Error reading subprocess output: {e}\n", "stderr")
+            self.group_layout.subprocess_output.text_output.see(END)
 
 
 if __name__ == '__main__':
