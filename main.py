@@ -200,7 +200,6 @@ class GroupLayout(ttk.Frame):
         self.technical_attributes.grid_columnconfigure(0, weight=1)
         self.technical_attributes.grid_columnconfigure(1, weight=1)
         self.technical_attributes.grid_columnconfigure(2, weight=2)
-        self.technical_attributes.grid_columnconfigure(3, weight=2)
         self.technical_attributes.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
 
         self.subprocess_output = SubprocessOutput(self)
