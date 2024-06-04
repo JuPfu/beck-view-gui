@@ -2,10 +2,14 @@ import os
 import subprocess
 import tkinter
 from pathlib import Path
+from tkinter.font import Font
+from typing import Any
 
 import ttkbootstrap as ttk
+from ttkbootstrap import Checkbutton, Style, Frame, Label
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
+from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.tooltip import ToolTip
 
 
@@ -69,6 +73,9 @@ class TechnicalAttributes(ttk.LabelFrame):
                      "Verarbeitungs-geschwindigkeit.\nWertebereich 1 bis 99.",
                 bootstyle="INFO, INVERSE")
 
+        self.panel = ttk.Frame(self, borderwidth=0)
+        self.panel.grid(row=row, column=2, rowspan=2, padx=(10, 10), pady=(10, 10), sticky="ewns")
+
 
 class Preferences(ttk.LabelFrame):
     def __init__(self, master):
@@ -81,9 +88,9 @@ class Preferences(ttk.LabelFrame):
         self.logo_label.grid(row=0, column=0, rowspan=3, padx=(10, 0), pady=(10, 10), sticky="ew")
 
         self.device_label = ttk.Label(self, font=("Helvetica", 16), text="Gerätenummer der Kamera")
-        self.device_label.grid(row=0, column=1, padx=(10, 0), pady=(10, 10), sticky="nw")
+        self.device_label.grid(row=0, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
         self.device = ttk.Spinbox(self, font=("Helvetica", 16), from_=0, to=9, state=ttk.READONLY)
-        self.device.grid(row=0, column=2, padx=(0, 10), pady=(10, 10), sticky="nw")
+        self.device.grid(row=0, column=2, padx=(0, 10), pady=(10, 10), sticky="ew")
         self.device.set(0)
         ToolTip(self.device,
                 text="Vom System vergebene Geräte-Id.\nZulässiger Wertebereich ist 0 bis 9.",
@@ -92,7 +99,7 @@ class Preferences(ttk.LabelFrame):
         self.frame_counter_label = ttk.Label(self,
                                              font=("Helvetica", 16),
                                              text="Maximale Anzahl Bilder")
-        self.frame_counter_label.grid(row=1, column=1, padx=(10, 0), pady=(10, 10), sticky="ew")
+        self.frame_counter_label.grid(row=1, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
         self.frame_counter_values = [
             "3600 (15-m-Kassette)",
             "7200 (30-m-Kassette)",
@@ -119,27 +126,30 @@ class Preferences(ttk.LabelFrame):
 
         self.monitor = tkinter.BooleanVar()
         self.monitor.set(False)
+
         self.monitor_checkbutton = ttk.Checkbutton(self, text="Monitor-Fenster anzeigen",
                                                    onvalue=True, offvalue=False,
                                                    variable=self.monitor,
                                                    style='beck-view-gui.TCheckbutton'
                                                    )
-
         self.monitor_checkbutton.grid(row=2, column=1, padx=(10, 0), pady=(15, 10), sticky="ew")
         ToolTip(self.monitor_checkbutton,
                 text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.\nReduziert die "
                      "Digitalisierungs-geschwindigkeit.",
                 bootstyle="INFO, INVERSE")
 
+        self.panel = ttk.Frame(self, borderwidth=0)
+        self.panel.grid(row=0, column=3, rowspan=3, padx=(10, 10), pady=(10, 10), sticky="ewns")
+
 
 class SubprocessOutput(ttk.LabelFrame):
     def __init__(self, master):
         super().__init__(master)
 
-        self.configure(borderwidth=3, text="Ausgabe `Beck-View-Digitize`",  relief=SOLID)
+        self.configure(borderwidth=3, text="Ausgabe `Beck-View-Digitize`", relief=SOLID)
 
         # Create ScrolledText widget for displaying subprocess output
-        self.text_output = ScrolledText(self, height=10, font=("Helvetica", 14), wrap=WORD)
+        self.text_output = ScrolledText(self, height=10, font=("Helvetica", 14), wrap=WORD, autohide=True)
         self.text_output.grid(row=0, column=0, rowspan=10, padx=10, pady=10, sticky=NSEW)
 
         # Configure grid to make the text_output widget expand
@@ -172,8 +182,10 @@ class GroupLayout(ttk.Frame):
 
         # Create other GUI elements
         self.preferences = Preferences(self)
+        self.preferences.grid_columnconfigure(0, weight=0)
         self.preferences.grid_columnconfigure(1, weight=1)
-        self.preferences.grid_columnconfigure(0, weight=1)
+        self.preferences.grid_columnconfigure(2, weight=1)
+        self.preferences.grid_columnconfigure(3, weight=2)
         self.preferences.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
         self.directory_dialog = FrameOutputDirectory(self)
@@ -185,8 +197,10 @@ class GroupLayout(ttk.Frame):
 
         self.technical_attributes = TechnicalAttributes(self)
         self.technical_attributes.grid_rowconfigure(0, weight=1)
-        self.technical_attributes.grid_columnconfigure(1, weight=1)
         self.technical_attributes.grid_columnconfigure(0, weight=1)
+        self.technical_attributes.grid_columnconfigure(1, weight=1)
+        self.technical_attributes.grid_columnconfigure(2, weight=2)
+        self.technical_attributes.grid_columnconfigure(3, weight=2)
         self.technical_attributes.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
 
         self.subprocess_output = SubprocessOutput(self)
@@ -273,6 +287,14 @@ class App(ttk.Window):
 
         try:
             if self.button.cget('text') == "Start Digitalisierung":
+
+                toast = ToastNotification(
+                    title="Beck-View-GUI",
+                    message="Die Digitalisierung wird gestartet",
+                    duration=3000,
+                )
+                toast.show_toast()
+
                 print(f"Subprocess started: {args}")
                 self.button.configure(text="Stop", style='beck-view-gui.TButton')
                 self.button.configure(bootstyle="danger")  # Change button color to red
@@ -305,13 +327,14 @@ class App(ttk.Window):
 
             # Continue reading output
             if self.p.poll() is None:
-                self.after(1000, self.read_subprocess_output)
+                self.after(500, self.read_subprocess_output)
             # else:
-            # Subprocess finished
-            # self.button.configure(text="Start Digitalisierung", style='beck-view-gui.TButton')
-            # self.button.configure(bootstyle="primary")  # Change button color back to default
+            #     #  Subprocess finished
+            #     self.button.configure(text="Start Digitalisierung", style='beck-view-gui.TButton')
+            #     self.button.configure(bootstyle="primary")  # Change button color back to default
         except Exception as e:
-            self.group_layout.subprocess_output.text_output.insert(END, f"Error reading subprocess output: {e}\n", "stderr")
+            self.group_layout.subprocess_output.text_output.insert(END, f"Error reading subprocess output: {e}\n",
+                                                                   "stderr")
             self.group_layout.subprocess_output.text_output.see(END)
 
 
