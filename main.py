@@ -12,6 +12,8 @@ from ttkbootstrap.scrolled import ScrolledText
 from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.tooltip import ToolTip
 
+import asyncio  # Import asyncio
+
 
 class FrameOutputDirectory(ttk.LabelFrame):
     from tkinter.filedialog import askdirectory
@@ -183,32 +185,78 @@ class GroupLayout(ttk.Frame):
         # Create other GUI elements
         self.preferences = Preferences(self)
         self.preferences.grid_columnconfigure(0, weight=0)
-        self.preferences.grid_columnconfigure(1, weight=1)
-        self.preferences.grid_columnconfigure(2, weight=1)
+        self.preferences.grid_columnconfigure(1, weight=0)
+        self.preferences.grid_columnconfigure(2, weight=0)
         self.preferences.grid_columnconfigure(3, weight=2)
-        self.preferences.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
-
-        self.directory_dialog = FrameOutputDirectory(self)
-        self.directory_dialog.grid_rowconfigure(0, weight=1)
-        self.directory_dialog.grid_columnconfigure(0, weight=0)
-        self.directory_dialog.grid_columnconfigure(1, weight=1)
-        self.directory_dialog.grid_columnconfigure(2, weight=0)
-        self.directory_dialog.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+        self.preferences.grid(row=0, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=EW)
 
         self.technical_attributes = TechnicalAttributes(self)
-        self.technical_attributes.grid_rowconfigure(0, weight=1)
-        self.technical_attributes.grid_columnconfigure(0, weight=1)
-        self.technical_attributes.grid_columnconfigure(1, weight=1)
-        self.technical_attributes.grid_columnconfigure(2, weight=2)
-        self.technical_attributes.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+        self.technical_attributes.grid(row=1, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=EW)
+
+        self.output_directory = FrameOutputDirectory(self)
+        self.output_directory.grid_columnconfigure(0, weight=0)
+        self.output_directory.grid_columnconfigure(1, weight=1)
+        self.output_directory.grid_columnconfigure(2, weight=0)
+        self.output_directory.grid(row=2, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=EW)
 
         self.subprocess_output = SubprocessOutput(self)
-        self.subprocess_output.grid(row=3, column=0, padx=10, pady=10, sticky=NSEW)
+        self.subprocess_output.grid(row=3, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=NSEW)
+
+        self.start_button = ttk.Button(self,
+                                       text="Beck-View-Digitize starten",
+                                       style="beck-view-gui.TButton",
+                                       command=self.start_digitization)
+        self.start_button.grid(row=4, column=0, columnspan=1, padx=(10, 10), pady=(10, 10), sticky=EW)
+
+        self.stop_button = ttk.Button(self,
+                                      text="Beck-View-Digitize stoppen",
+                                      style="beck-view-gui.TButton",
+                                      command=self.stop_digitization)
+        self.stop_button.grid(row=4, column=1, columnspan=1, padx=(10, 10), pady=(10, 10), sticky=EW)
 
         # Configure grid weights
         self.grid_rowconfigure(3, weight=1)
         self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
 
+        # Create asyncio event loop
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+    async def read_subprocess_output(self, process: subprocess.Popen):
+        # Asynchronously read subprocess output
+        while True:
+            line = await self.loop.run_in_executor(None, process.stdout.readline)
+            if not line:
+                break
+            print(f"{line=}")
+            self.subprocess_output.text_output.insert(tkinter.END, line.decode)
+            self.subprocess_output.text_output.see(tkinter.END)
+
+    def start_digitization(self):
+        self.subprocess_output.text_output.insert(tkinter.END, "Starte Digitalisierung...\n")
+
+        async def run_digitization():
+            command = [
+                "python", "-u", "beck_view_digitize.py",
+                f"--device-number={self.preferences.device.get()}",
+                f"--max-frames={self.preferences.frame_counter.get().split()[0]}",
+                f"--output-path={self.output_directory.directory_path.get()}"
+            ]
+            if self.preferences.monitor.get():
+                command.append("--monitor")
+
+            process = await asyncio.create_subprocess_exec(*command,
+                                                           stdout=asyncio.subprocess.PIPE,
+                                                           stderr=asyncio.subprocess.PIPE)
+
+            await asyncio.wait([asyncio.create_task(self.read_subprocess_output(process))])
+
+        self.loop.create_task(run_digitization())
+
+    def stop_digitization(self):
+        self.subprocess_output.text_output.insert(tkinter.END, "Stoppe Digitalisierung...\n")
+        # Add logic to stop the subprocess if needed
 
 class SplashScreen(ttk.Toplevel):
     def __init__(self):
@@ -236,107 +284,40 @@ class SplashScreen(ttk.Toplevel):
         # After a delay, close the splash screen
         self.after(5000, self.destroy)
 
-
-class App(ttk.Window):
+class Application(ttk.Window):
     def __init__(self):
-        super().__init__(title="Beck-View", minsize=[800, 640], themename="superhero")
+        super().__init__(themename="morph")
 
         # Show splash screen
         SplashScreen()
 
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.minsize(width=1080, height=720)
+        self.geometry("1080x720")
+        self.title("Beck View Digitalisierer")
+        self.option_add("*tearOff", False)
 
-        # Create main menu
-        self.menubar = MainMenu(self)
-        self.config(menu=self.menubar)
+        self.menu = MainMenu(self)
+        self.config(menu=self.menu)
 
-        self.group_layout = GroupLayout(self)
-        self.group_layout.grid(row=0, column=0, padx=0, pady=0, sticky=NSEW)
+        self.layout = GroupLayout(self)
+        self.layout.pack(fill=BOTH, expand=YES)
 
-        s = ttk.Style()
-        s.configure('beck-view-gui.TButton', font=('Helvetica', 16))
+        # Integrate asyncio event loop with Tkinter
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.loop = self.layout.loop
+        self.update_loop()
 
-        self.button = ttk.Button(self, text="Start Digitalisierung", style='beck-view-gui.TButton',
-                                 command=self.button_callback)
-        self.button.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+    def update_loop(self):
+        self.loop.call_soon(self.loop.stop)
+        self.loop.run_forever()
+        self.after(100, self.update_loop)
 
-    def button_callback(self):
-        filepath = Path.home().joinpath('PycharmProjects', 'beck-view-digitalize', 'beck-view-digitize')
-        args = [str(filepath)]  # path to executable
-
-        # Spawn subprocess with configured command line options
-        if self.group_layout.preferences.device.get() != '0':
-            args.append("--device")
-            args.append(f"{self.group_layout.preferences.device.get()}")
-
-        emergency_stop = self.group_layout.preferences.frame_counter.get().split(" ")[0]
-        args.append("--max-count")
-        args.append(f"{emergency_stop}")
-
-        if self.group_layout.preferences.monitor.get():
-            args.append("--show_monitor")
-
-        args.append("--output-path")
-        args.append(f"{self.group_layout.directory_dialog.directory_path.get()}")
-
-        if self.group_layout.technical_attributes.batch.get() != '8':
-            args.append("--chunk-size")
-            args.append(f"{self.group_layout.technical_attributes.batch.get()}")
-
-        try:
-            if self.button.cget('text') == "Start Digitalisierung":
-
-                toast = ToastNotification(
-                    title="Beck-View-GUI",
-                    message="Die Digitalisierung wird gestartet",
-                    duration=3000,
-                )
-                toast.show_toast()
-
-                print(f"Subprocess started: {args}")
-                self.button.configure(text="Stop", style='beck-view-gui.TButton')
-                self.button.configure(bootstyle="danger")  # Change button color to red
-
-                # Start the subprocess with stdout and stderr redirected to pipes
-                self.p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-                # Start reading subprocess output
-                self.read_subprocess_output()
-            else:
-                # If button text is "Stop", kill the subprocess
-                self.p.kill()
-                self.button.configure(text="Start Digitalisierung", style='beck-view-gui.TButton')
-                self.button.configure(bootstyle="primary")  # Change button color back to default
-        except Exception as e:
-            print(f"Error starting 'beck-view-digitize': {e}")
-
-    def read_subprocess_output(self):
-        """Reads the subprocess output and updates the Text widget."""
-        try:
-            output = self.p.stdout.readline()
-            if output:
-                self.group_layout.subprocess_output.text_output.insert(END, output)
-                self.group_layout.subprocess_output.text_output.see(END)
-
-            error = self.p.stderr.readline()
-            if error:
-                self.group_layout.subprocess_output.text_output.insert(END, error, "stderr")
-                self.group_layout.subprocess_output.text_output.see(END)
-
-            # Continue reading output
-            if self.p.poll() is None:
-                self.after(500, self.read_subprocess_output)
-            # else:
-            #     #  Subprocess finished
-            #     self.button.configure(text="Start Digitalisierung", style='beck-view-gui.TButton')
-            #     self.button.configure(bootstyle="primary")  # Change button color back to default
-        except Exception as e:
-            self.group_layout.subprocess_output.text_output.insert(END, f"Error reading subprocess output: {e}\n",
-                                                                   "stderr")
-            self.group_layout.subprocess_output.text_output.see(END)
+    def on_closing(self):
+        self.loop.call_soon(self.loop.stop)
+        self.loop.close()
+        self.destroy()
 
 
-if __name__ == '__main__':
-    app = App()
+if __name__ == "__main__":
+    app = Application()
     app.mainloop()
