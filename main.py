@@ -1,3 +1,4 @@
+import asyncio
 import os
 import subprocess
 import tkinter
@@ -11,8 +12,6 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
 from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.tooltip import ToolTip
-
-import asyncio  # Import asyncio
 
 
 class FrameOutputDirectory(ttk.LabelFrame):
@@ -231,6 +230,7 @@ class GroupLayout(ttk.Frame):
                 break
             self.subprocess_output.text_output.insert(tkinter.END, line.decode())
             self.subprocess_output.text_output.see(tkinter.END)
+            # await asyncio.sleep(0.01)  # Add a short sleep to allow GUI updates
 
     def start_digitization(self):
         self.subprocess_output.text_output.insert(tkinter.END, "Starte Digitalisierung...\n")
@@ -246,9 +246,8 @@ class GroupLayout(ttk.Frame):
                 f"--chunk-size={self.technical_attributes.batch.get()}"
             ]
             if self.preferences.monitor.get():
-                command.append("--monitor")
+                command.append("--show-monitor")
 
-            # Print the command list to verify its correctness
             print("Running command:", command)
 
             try:
@@ -257,11 +256,15 @@ class GroupLayout(ttk.Frame):
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
+
+                # Start reading subprocess output asynchronously
+                self.loop.create_task(self.read_subprocess_output(process))
+
+                # Wait for the process to finish
+                await process.wait()
+
             except Exception as e:
                 print(f"Error starting subprocess: {e}")
-                return
-
-            await asyncio.wait([asyncio.create_task(self.read_subprocess_output(process))])
 
         self.loop.create_task(run_digitization())
 
@@ -269,31 +272,6 @@ class GroupLayout(ttk.Frame):
         self.subprocess_output.text_output.insert(tkinter.END, "Stoppe Digitalisierung...\n")
         # Add logic to stop the subprocess if needed
 
-class SplashScreen(ttk.Toplevel):
-    def __init__(self):
-        super().__init__()
-        self.title("Beck-View")
-
-        # self.overrideredirect(True)
-        self.resizable(False, False)
-
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
-
-        x_coordinate = int((screen_width / 2) - (1024 / 2))
-        y_coordinate = int((screen_height / 2) - (1024 / 2))
-
-        # Set the position of the window to the center of the screen
-        self.geometry(f"1024x1024+{x_coordinate}+{y_coordinate}")
-
-        # Load splash image
-        self.splash_image = ttk.PhotoImage(file="beck-view-digitize.png")
-
-        splash_label = ttk.Label(self, image=self.splash_image)
-        splash_label.pack()
-
-        # After a delay, close the splash screen
-        self.after(5000, self.destroy)
 
 class Application(ttk.Window):
     def __init__(self):
