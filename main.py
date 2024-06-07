@@ -223,32 +223,43 @@ class GroupLayout(ttk.Frame):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
-    async def read_subprocess_output(self, process: subprocess.Popen):
+    async def read_subprocess_output(self, process: asyncio.subprocess.Process):
         # Asynchronously read subprocess output
         while True:
-            line = await self.loop.run_in_executor(None, process.stdout.readline)
+            line = await process.stdout.readline()  # Await the async readline directly
             if not line:
                 break
-            print(f"{line=}")
-            self.subprocess_output.text_output.insert(tkinter.END, line.decode)
+            self.subprocess_output.text_output.insert(tkinter.END, line.decode())
             self.subprocess_output.text_output.see(tkinter.END)
 
     def start_digitization(self):
         self.subprocess_output.text_output.insert(tkinter.END, "Starte Digitalisierung...\n")
 
         async def run_digitization():
+            filepath = Path.home().joinpath('PycharmProjects', 'beck-view-digitalize', 'beck-view-digitize')
+
             command = [
-                "python", "-u", "beck_view_digitize.py",
-                f"--device-number={self.preferences.device.get()}",
-                f"--max-frames={self.preferences.frame_counter.get().split()[0]}",
-                f"--output-path={self.output_directory.directory_path.get()}"
+                str(filepath),
+                f"--device={self.preferences.device.get()}",
+                f"--max-count={self.preferences.frame_counter.get().split()[0]}",
+                f"--output-path={self.output_directory.directory_path.get()}",
+                f"--chunk-size={self.technical_attributes.batch.get()}"
             ]
             if self.preferences.monitor.get():
                 command.append("--monitor")
 
-            process = await asyncio.create_subprocess_exec(*command,
-                                                           stdout=asyncio.subprocess.PIPE,
-                                                           stderr=asyncio.subprocess.PIPE)
+            # Print the command list to verify its correctness
+            print("Running command:", command)
+
+            try:
+                process = await asyncio.create_subprocess_exec(
+                    *command,  # Unpack the command list here
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+            except Exception as e:
+                print(f"Error starting subprocess: {e}")
+                return
 
             await asyncio.wait([asyncio.create_task(self.read_subprocess_output(process))])
 
@@ -289,7 +300,7 @@ class Application(ttk.Window):
         super().__init__(themename="morph")
 
         # Show splash screen
-        SplashScreen()
+        # SplashScreen()
 
         self.minsize(width=1080, height=720)
         self.geometry("1080x720")
