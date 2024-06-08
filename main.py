@@ -222,6 +222,9 @@ class GroupLayout(ttk.Frame):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
+        # Store reference to subprocess
+        self.process = None
+
     async def read_subprocess_output(self, process: asyncio.subprocess.Process):
         # Asynchronously read subprocess output
         while True:
@@ -251,17 +254,17 @@ class GroupLayout(ttk.Frame):
             print("Running command:", command)
 
             try:
-                process = await asyncio.create_subprocess_exec(
-                    *command,  # Unpack the command list here
+                self.process = await asyncio.create_subprocess_exec(
+                    *command,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
 
                 # Start reading subprocess output asynchronously
-                self.loop.create_task(self.read_subprocess_output(process))
+                self.loop.create_task(self.read_subprocess_output(self.process))
 
                 # Wait for the process to finish
-                await process.wait()
+                await self.process.wait()
 
             except Exception as e:
                 print(f"Error starting subprocess: {e}")
@@ -270,7 +273,10 @@ class GroupLayout(ttk.Frame):
 
     def stop_digitization(self):
         self.subprocess_output.text_output.insert(tkinter.END, "Stoppe Digitalisierung...\n")
-        # Add logic to stop the subprocess if needed
+        if self.process:
+            self.process.terminate()
+            self.subprocess_output.text_output.insert(tkinter.END, "Digitalisierung gestoppt.\n")
+            self.process = None
 
 
 class Application(ttk.Window):
