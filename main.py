@@ -64,7 +64,7 @@ class TechnicalAttributes(ttk.LabelFrame):
         self.configure(borderwidth=3, text="Performance-Tuning", relief=SOLID)
         row = 0
 
-        self.batch_label = ttk.Label(self, font=("Helvetica", 16), text="Parallele Anzahl Bilder")
+        self.batch_label = ttk.Label(self, font=("Helvetica", 16), text="Anzahl Bilder, die jedem Prozess übergeben wird")
         self.batch_label.grid(row=row, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
         self.batch = ttk.Spinbox(self, font=("Helvetica", 16), from_=1, to=100, state=ttk.READONLY)
         self.batch.grid(row=row, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
@@ -189,14 +189,14 @@ class GroupLayout(ttk.Frame):
         self.preferences.grid_columnconfigure(3, weight=2)
         self.preferences.grid(row=0, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=EW)
 
-        self.technical_attributes = TechnicalAttributes(self)
-        self.technical_attributes.grid(row=1, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=EW)
-
         self.output_directory = FrameOutputDirectory(self)
         self.output_directory.grid_columnconfigure(0, weight=0)
         self.output_directory.grid_columnconfigure(1, weight=1)
         self.output_directory.grid_columnconfigure(2, weight=0)
-        self.output_directory.grid(row=2, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=EW)
+        self.output_directory.grid(row=1, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=EW)
+
+        self.technical_attributes = TechnicalAttributes(self)
+        self.technical_attributes.grid(row=2, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=EW)
 
         self.subprocess_output = SubprocessOutput(self)
         self.subprocess_output.grid(row=3, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=NSEW)
@@ -282,9 +282,6 @@ class GroupLayout(ttk.Frame):
 class Application(ttk.Window):
     def __init__(self):
         super().__init__(themename="morph")
-
-        # Show splash screen
-        # SplashScreen()
 
         self.minsize(width=1080, height=720)
         self.geometry("1080x720")
