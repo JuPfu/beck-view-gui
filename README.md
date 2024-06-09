@@ -1,118 +1,73 @@
-# Beck-View GUI
-
-## Overview
+# Beck View GUI
 
 The Beck-View GUI App supplies a user-friendly interface to configure the various settings for the [Beck-View-Digitalize](https://github.com/JuPfu/beck-view-digitalize)
 Application, such as output directory, camera device number, and other technical attributes. It is built
 using `ttkbootstrap` for a modern and consistent look and feel across different operating systems.
-
 ## Features
 
-- **Output Directory Selection:** Choose the directory where digitized images will be stored.
-- **Technical Attributes Configuration:** Set the maximum number of images and the number of parallel images to process.
-- **Preferences Setup:** Configure the camera device number and toggle the display of a monitor window showing digitized
-  images.
-- **Menu Options:** Access file and window management options from the menu bar.
-- **Splash Screen:** Display a splash screen upon startup.
-- **Start Digitization:** Launch the digitization process with the configured settings.
+- **Device Configuration**: Select the camera device and set the maximum number of frames to digitize.
+- **Output Directory**: Choose the directory where the digitized images will be saved.
+- **Performance Tuning**: Set the chunk size for parallel processing of images.
+- **Real-time Monitoring**: Optionally display a preview window with the digitized images.
+- **Subprocess Management**: Start and stop the digitization process with proper handling of subprocess termination for cleanup.
 
-## Requirements
+## Prerequisites
 
-- Python 3.x
+- Python 3.7 or higher
 - `ttkbootstrap` library
-- `tkinter` library (usually comes pre-installed with Python)
+- `asyncio` library (comes with Python 3.7+)
 
 ## Installation
 
-1. **Clone the Repository:**
-   ```bash
+1. **Clone the repository**:
+   ```sh
    git clone https://github.com/JuPfu/beck-view-gui.git
    cd beck-view-gui
    ```
 
-2. **Install Dependencies:**
-   ```bash
-   pip install -r requirements.txt
+2. **Install dependencies**:
+   ```sh
+   pip install ttkbootstrap
    ```
 
-3. **Run the Application:**
-   ```bash
-   python main.py
-   ```
+## Running the Application
+
+To start the GUI application, run the following command:
+
+```sh
+python beck_view_gui.py
+```
 
 ## Usage
 
-### Main Components
+1. **Start the Application**:
+   - Run `python beck_view_gui.py` to launch the GUI.
 
-#### FrameOutputDirectory
+2. **Configure Settings**:
+   - Select the camera device number.
+   - Choose the maximum number of frames to digitize.
+   - Set the output directory for digitized images.
+   - Adjust the chunk size for parallel image processing.
+   - Enable the monitor window if needed.
 
-This frame allows users to select the directory where digitized images will be stored.
+3. **Start Digitization**:
+   - Click the "Start Digitization" button to begin the process.
+   - The output from the subprocess will be displayed in real-time in the output text area.
 
-#### TechnicalAttributes
+4. **Stop Digitization**:
+   - Click the "Stop Digitization" button to terminate the subprocess. The subprocess will handle cleanup before exiting.
 
-This frame provides options to set the maximum number of images and the batch size for parallel processing.
-
-#### Preferences
-
-This frame includes settings for the camera device number and a checkbox to enable or disable the monitor window.
-
-#### MainMenu
-
-This class creates the main menu with options for file and window management.
-
-### How to Use
-
-1. **Launch the Application:**
-   Run the application using the command mentioned in the installation section.
-
-2. **Configure Settings:**
-    - **Output Directory:** Click on the "Auswählen" button to open a dialog for selecting the output directory.
-    - **Technical Attributes:** Choose the maximum number of images and the batch size from the dropdown and spinbox
-      respectively.
-    - **Preferences:** Set the camera device number and enable/disable the monitor window using the provided spinbox and
-      checkbox.
-
-3. **Start Digitization:**
-   Click on the "Start Digitalisierung" button to begin the digitization process. The application will launch a
-   subprocess to handle the digitization with the configured settings.
-
-## File Structure
-
-```
-beck-view/
-│
-├── main.py                 # Main application script
-├── README.md               # This README file
-├── beck-view-digitize.png  # Splash screen image
-└── requirements.txt        # Python dependencies
-```
 
 ## Contributing
 
-1. **Fork the Repository**
-2. **Create a Feature Branch:**
-   ```bash
-   git checkout -b feature/your-feature
-   ```
-3. **Commit Changes:**
-   ```bash
-   git commit -m 'Add some feature'
-   ```
-4. **Push to the Branch:**
-   ```bash
-   git push origin feature/your-feature
-   ```
-5. **Open a Pull Request**
+Contributions are welcome! Please fork the repository and create a pull request with your changes.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
-## Acknowledgements
+## Contact
 
-- [ttkbootstrap](https://github.com/israel-dryer/ttkbootstrap) for providing a modern and customizable theme
-  for `tkinter`.
+For questions or suggestions, please open an issue on GitHub.
 
----
-
-Feel free to explore and customize the Beck-View-GUI App to suit your specific needs. Happy digitizing!
+```
