@@ -1,16 +1,11 @@
 import asyncio
 import os
-import subprocess
 import tkinter
 from pathlib import Path
-from tkinter.font import Font
-from typing import Any
 
 import ttkbootstrap as ttk
-from ttkbootstrap import Checkbutton, Style, Frame, Label
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
-from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.tooltip import ToolTip
 
 
@@ -64,7 +59,8 @@ class TechnicalAttributes(ttk.LabelFrame):
         self.configure(borderwidth=3, text="Performance-Tuning", relief=SOLID)
         row = 0
 
-        self.batch_label = ttk.Label(self, font=("Helvetica", 16), text="Anzahl Bilder, die jedem Prozess übergeben wird")
+        self.batch_label = ttk.Label(self, font=("Helvetica", 16),
+                                     text="Anzahl Bilder, die jedem Prozess übergeben wird")
         self.batch_label.grid(row=row, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
         self.batch = ttk.Spinbox(self, font=("Helvetica", 16), from_=1, to=100, state=ttk.READONLY)
         self.batch.grid(row=row, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
@@ -233,7 +229,6 @@ class GroupLayout(ttk.Frame):
                 break
             self.subprocess_output.text_output.insert(tkinter.END, line.decode())
             self.subprocess_output.text_output.see(tkinter.END)
-            # await asyncio.sleep(0.01)  # Add a short sleep to allow GUI updates
 
     def start_digitization(self):
         self.subprocess_output.text_output.insert(tkinter.END, "Starte Digitalisierung...\n")
