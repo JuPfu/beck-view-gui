@@ -1,5 +1,7 @@
 import asyncio
 import os
+import platform
+import subprocess
 import tkinter
 from pathlib import Path
 
@@ -221,6 +223,8 @@ class GroupLayout(ttk.Frame):
         # Store reference to subprocess
         self.process = None
 
+        self.process_status = -1
+
     async def read_subprocess_output(self, process: asyncio.subprocess.Process):
         # Asynchronously read subprocess output
         while True:
@@ -248,18 +252,30 @@ class GroupLayout(ttk.Frame):
 
             print("Running command:", command)
 
+            self.process_status = -1
+
             try:
-                self.process = await asyncio.create_subprocess_exec(
-                    *command,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
+                if platform.system() == "Windows":
+                    self.process = await asyncio.create_subprocess_exec(
+                        *command,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                        creationflags=subprocess.HIGH_PRIORITY_CLASS,
+                        start_new_session=True
+                    )
+                else:
+                    self.process = await asyncio.create_subprocess_exec(
+                        *command,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                        start_new_session=True
+                    )
 
                 # Start reading subprocess output asynchronously
                 self.loop.create_task(self.read_subprocess_output(self.process))
 
                 # Wait for the process to finish
-                await self.process.wait()
+                self.process_status = await self.process.wait()
 
             except Exception as e:
                 print(f"Error starting subprocess: {e}")
@@ -267,11 +283,17 @@ class GroupLayout(ttk.Frame):
         self.loop.create_task(run_digitization())
 
     def stop_digitization(self):
-        self.subprocess_output.text_output.insert(tkinter.END, "Stoppe Digitalisierung...\n")
-        if self.process:
-            self.process.terminate()
-            self.subprocess_output.text_output.insert(tkinter.END, "Digitalisierung gestoppt.\n")
+        if self.process and self.process_status < 0:
+            self.subprocess_output.text_output.insert(tkinter.END, "Stoppe Digitalisierung...\n")
+            try:
+                self.process.terminate()
+            except Exception as e:
+                print(f"Error while trying to terminate subprocess: {e}")
+
+            self.subprocess_output.text_output.insert(tkinter.END, "Digitalisierung gestoppt!\n")
             self.process = None
+        else:
+            self.subprocess_output.text_output.insert(tkinter.END, "Kein laufender Digitalisierungsprozess gefunden!\n")
 
 
 class Application(ttk.Window):
