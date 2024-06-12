@@ -118,4 +118,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Contact
 
-For questions or suggestions, please open an issue on GitHub.is README provides an overview of the project, installation instructions, usage guidelines, and steps to create an executable with Nuitka. Feel free to adjust it according to any additional details specific to your project.
+For questions or suggestions, please open an issue on GitHub.
+
+------
+This README provides an overview of the project, installation instructions, usage guidelines, and steps to create an executable with Nuitka. Feel free to adjust it according to any additional details specific to your project.
