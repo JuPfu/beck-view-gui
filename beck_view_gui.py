@@ -242,7 +242,7 @@ class GroupLayout(ttk.Frame):
         self.subprocess_output.text_output.insert(tkinter.END, "Starte Digitalisierung...\n")
 
         async def run_digitization():
-            filepath = Path.home().joinpath('PycharmProjects', 'beck-view-digitalize', 'beck-view-digitize')
+            filepath = Path.home().joinpath('PycharmProjects', 'beck-view-digitalize', 'beck-view-digitize.cmd')
 
             command = [
                 str(filepath),
@@ -254,8 +254,6 @@ class GroupLayout(ttk.Frame):
             if self.preferences.monitor.get():
                 command.append("--show-monitor")
 
-            print("Running command:", command)
-
             self.process_status = -1
 
             try:
@@ -264,15 +262,13 @@ class GroupLayout(ttk.Frame):
                         *command,
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
-                        creationflags=subprocess.HIGH_PRIORITY_CLASS,
-                        start_new_session=True
+                        creationflags=subprocess.HIGH_PRIORITY_CLASS | subprocess.CREATE_NEW_PROCESS_GROUP
                     )
                 else:
                     self.process = await asyncio.create_subprocess_exec(
                         *command,
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
-                        start_new_session=True
                     )
 
                 # Start reading subprocess output asynchronously
@@ -289,11 +285,7 @@ class GroupLayout(ttk.Frame):
     def stop_digitization(self):
         if self.process and self.process_status < 0:
             self.subprocess_output.text_output.insert(tkinter.END, "Stoppe Digitalisierung...\n")
-            try:
-                self.process.terminate()
-            except Exception as e:
-                print(f"Error while trying to terminate subprocess: {e}")
-
+            self.process.terminate()
             self.subprocess_output.text_output.insert(tkinter.END, "Digitalisierung gestoppt!\n")
             self.process = None
         else:
@@ -308,6 +300,8 @@ class Application(ttk.Window):
         self.geometry("1080x720")
         self.title("Beck View Digitalisierer")
         self.option_add("*tearOff", False)
+
+        self.iconbitmap("beck-view-gui.ico")
 
         self.menu = MainMenu(self)
         self.config(menu=self.menu)
