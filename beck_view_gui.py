@@ -10,6 +10,8 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 
+beck_view_font = ("Helvetica", 14)
+
 
 class FrameOutputDirectory(ttk.LabelFrame):
     from tkinter.filedialog import askdirectory
@@ -25,15 +27,15 @@ class FrameOutputDirectory(ttk.LabelFrame):
         super().__init__(master)
 
         self.configure(borderwidth=3, text="Zielordner für digitalisierte Bilder", relief=SOLID)
-        self.directory_label = ttk.Label(self, text="Ausgabeverzeichnis", font=("Helvetica", 16))
+        self.directory_label = ttk.Label(self, text="Ausgabeverzeichnis", font=beck_view_font)
         self.directory_label.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.directory_path = ttk.Entry(self, font=("Helvetica", 16), takefocus=0)
+        self.directory_path = ttk.Entry(self, font=beck_view_font, takefocus=0)
         self.directory_path.insert(0, os.getcwd())
         self.directory_path.configure(state=ttk.READONLY)
         self.directory_path.grid(row=0, column=1, pady=(10, 10), sticky="ew")
 
         s = ttk.Style()
-        s.configure('beck-view-gui.TButton', font=('Helvetica', 16))
+        s.configure('beck-view-gui.TButton', font=beck_view_font)
         self.directory_button = ttk.Button(self,
                                            text="Auswählen",
                                            style="beck-view-gui.TButton",
@@ -61,10 +63,10 @@ class TechnicalAttributes(ttk.LabelFrame):
         self.configure(borderwidth=3, text="Performance-Tuning", relief=SOLID)
         row = 0
 
-        self.batch_label = ttk.Label(self, font=("Helvetica", 16),
+        self.batch_label = ttk.Label(self, font=beck_view_font,
                                      text="Anzahl Bilder, die jedem Prozess übergeben wird")
         self.batch_label.grid(row=row, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
-        self.batch = ttk.Spinbox(self, font=("Helvetica", 16), from_=1, to=100, state=ttk.READONLY)
+        self.batch = ttk.Spinbox(self, font=beck_view_font, from_=1, to=100, state=ttk.READONLY)
         self.batch.grid(row=row, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
         self.batch.set(8)
         ToolTip(self.batch,
@@ -86,9 +88,9 @@ class Preferences(ttk.LabelFrame):
         self.logo_label = ttk.Label(self, image=self.logo)
         self.logo_label.grid(row=0, column=0, rowspan=3, padx=(10, 0), pady=(10, 10), sticky="ew")
 
-        self.device_label = ttk.Label(self, font=("Helvetica", 16), text="Gerätenummer der Kamera")
+        self.device_label = ttk.Label(self, font=beck_view_font, text="Gerätenummer der Kamera")
         self.device_label.grid(row=0, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.device = ttk.Spinbox(self, font=("Helvetica", 16), from_=0, to=9, state=ttk.READONLY)
+        self.device = ttk.Spinbox(self, font=beck_view_font, from_=0, to=9, state=ttk.READONLY)
         self.device.grid(row=0, column=2, padx=(0, 10), pady=(10, 10), sticky="ew")
         self.device.set(0)
         ToolTip(self.device,
@@ -96,7 +98,7 @@ class Preferences(ttk.LabelFrame):
                 bootstyle="INFO, INVERSE")
 
         self.frame_counter_label = ttk.Label(self,
-                                             font=("Helvetica", 16),
+                                             font=beck_view_font,
                                              text="Maximale Anzahl Bilder")
         self.frame_counter_label.grid(row=1, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
         self.frame_counter_values = [
@@ -108,7 +110,7 @@ class Preferences(ttk.LabelFrame):
             "60000 (250-m-Kassette)"
         ]
         self.frame_counter = ttk.Combobox(self,
-                                          font=("Helvetica", 16),
+                                          font=beck_view_font,
                                           values=self.frame_counter_values,
                                           state=ttk.READONLY)
 
@@ -119,9 +121,11 @@ class Preferences(ttk.LabelFrame):
                 bootstyle="INFO, INVERSE")
 
         s = ttk.Style()
-        s.configure('beck-view-gui.TCheckbutton', font=('Helvetica', 16))
+        s.configure('beck-view-gui.TCheckbutton', font=beck_view_font)
         s.map('beck-view-gui.TCheckbutton',
-              font=[('focus', ('Helvetica', 16, 'italic'))])
+              font=[('focus', ('Helvetica', 14, 'italic'))],
+              background=[('focus', ('white'))],
+              )
 
         self.monitor = tkinter.BooleanVar()
         self.monitor.set(False)
@@ -148,7 +152,7 @@ class SubprocessOutput(ttk.LabelFrame):
         self.configure(borderwidth=3, text="Ausgabe `Beck-View-Digitize`", relief=SOLID)
 
         # Create ScrolledText widget for displaying subprocess output
-        self.text_output = ScrolledText(self, height=10, font=("Helvetica", 14), wrap=WORD, autohide=True)
+        self.text_output = ScrolledText(self, height=10, font=beck_view_font, wrap=WORD, autohide=True, takefocus=FALSE)
         self.text_output.grid(row=0, column=0, rowspan=10, padx=10, pady=10, sticky=NSEW)
 
         # Configure grid to make the text_output widget expand
