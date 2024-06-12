@@ -11,32 +11,32 @@ using `ttkbootstrap` for a modern and consistent look and feel across different 
 - **Real-time Monitoring**: Optionally display a preview window with the digitized images.
 - **Subprocess Management**: Start and stop the digitization process with proper handling of subprocess termination for cleanup.
 
-## Prerequisites
+## Requirements
 
-- Python 3.7 or higher
-- `ttkbootstrap` library
-- `asyncio` library (comes with Python 3.7+)
+- Python 3.8 or later
+- Dependencies listed in `requirements.txt`
 
 ## Installation
 
-1. **Clone the repository**:
-   ```sh
-   git clone https://github.com/JuPfu/beck-view-gui.git
-   cd beck-view-gui
-   ```
+1. **Clone the repository:**
 
-2. **Install dependencies**:
-   ```sh
-   pip install ttkbootstrap
-   ```
+    ```sh
+    git clone https://github.com/JuPfu/beck-view-gui.git
+    cd beck-view-gui
+    ```
 
-## Running the Application
+2. **Set up a virtual environment:**
 
-To start the GUI application, run the following command:
+    ```sh
+    python -m venv venv
+    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+    ```
 
-```sh
-python beck_view_gui.py
-```
+3. **Install the dependencies:**
+
+    ```sh
+    pip install -r requirements.txt
+    ```
 
 ## Usage
 
@@ -57,17 +57,65 @@ python beck_view_gui.py
 4. **Stop Digitization**:
    - Click the "Stop Digitization" button to terminate the subprocess. The subprocess will handle cleanup before exiting.
 
+## Creating an Executable with Nuitka
 
+To distribute Beck View GUI as a standalone executable, you can use Nuitka, a Python-to-C++ compiler. Below are the steps to set up and create the executable.
+
+### Installing Nuitka
+
+1. **Install Nuitka:**
+
+    ```sh
+    pip install nuitka
+    ```
+
+2. **Install required C/C++ compilers:**
+
+    Follow the `Nuitka` guidelines for the installation of required C/C++ compilers.
+
+### Creating the Executable
+
+1. **Compile the Python script:**
+
+    Navigate to the project directory where `beck-view_gui.py` is located and run:
+
+   -  Windows
+    ```sh
+    python -m nuitka  --windows-console-mode=disable --windows-icon-from-ico=beck-view-digitize.png -o "beck-view-gui" beck_view_gui.py
+    ```
+   -  MacOS
+    ```sh
+    python3 -m nuitka  --macos-app-icon=beck-view-digitize.png  --enable-plugin=tk-inter --follow-imports --onefile --macos-app-mode=gui -o "beck-view-gui" beck_view_gui.py
+    ```
+    With `Nuitka` version 2.1.6 the build process fails on macOS
+    > [!WARNING]
+    >  FATAL: Error, call to 'codesign' failed: ['/usr/bin/codesign', '-s', '-', '--force', '--deep', '--preserve-metadata=entitlements', 'beck-view-gui'] -> b'beck-view-gui: bundle format unrecognized, invalid, or unsuitable\nIn subcomponent: /Users/jp/PycharmProjects/beck-view-gui/beck_view_gui.build'.
+
+2. **Running the Executable:**
+
+    After the compilation is complete, `Nuitka` will give you a notice where to find the executable. You can run it directly:
+
+    - On Windows:
+
+        ```sh
+        beck-view-gui.exe
+        ```
+      ![Beck View GUI](./assets/img/beck-view-gui.png)
+      Beck-View-GUI started without FT232H Chip attached
 ## Contributing
 
-Contributions are welcome! Please fork the repository and create a pull request with your changes.
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature-branch`).
+3. Commit your changes (`git commit -am 'Add new feature'`).
+4. Push to the branch (`git push origin feature-branch`).
+5. Create a new Pull Request.
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
 ## Contact
 
-For questions or suggestions, please open an issue on GitHub.
-
-```
+For questions or suggestions, please open an issue on GitHub.is README provides an overview of the project, installation instructions, usage guidelines, and steps to create an executable with Nuitka. Feel free to adjust it according to any additional details specific to your project.
