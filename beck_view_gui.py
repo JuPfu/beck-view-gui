@@ -1,7 +1,9 @@
 import asyncio
 import os
 import platform
+import signal
 import subprocess
+import time
 import tkinter
 from pathlib import Path
 
@@ -227,8 +229,6 @@ class GroupLayout(ttk.Frame):
         # Store reference to subprocess
         self.process = None
 
-        self.process_status = -1
-
     async def read_subprocess_output(self, process: asyncio.subprocess.Process):
         # Asynchronously read subprocess output
         while True:
@@ -254,8 +254,6 @@ class GroupLayout(ttk.Frame):
             if self.preferences.monitor.get():
                 command.append("--show-monitor")
 
-            self.process_status = -1
-
             try:
                 if platform.system() == "Windows":
                     self.process = await asyncio.create_subprocess_exec(
@@ -269,27 +267,43 @@ class GroupLayout(ttk.Frame):
                         *command,
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
+                        preexec_fn=os.setpgrp
                     )
 
                 # Start reading subprocess output asynchronously
                 self.loop.create_task(self.read_subprocess_output(self.process))
 
                 # Wait for the process to finish
-                self.process_status = await self.process.wait()
+                await self.process.wait()
 
             except Exception as e:
-                print(f"Error starting subprocess: {e}")
+                self.subprocess_output.text_output.insert(tkinter.END,
+                                                          f"Beck-View-GUI: Error starting subprocess: {e}\n")
+                self.subprocess_output.text_output.see(tkinter.END)
 
         self.loop.create_task(run_digitization())
 
     def stop_digitization(self):
-        if self.process and self.process_status < 0:
-            self.subprocess_output.text_output.insert(tkinter.END, "Stoppe Digitalisierung...\n")
-            self.process.terminate()
-            self.subprocess_output.text_output.insert(tkinter.END, "Digitalisierung gestoppt!\n")
-            self.process = None
+        if self.process:
+            self.subprocess_output.text_output.insert(tkinter.END, "Stoppe Beck-View-Digitize ...\n")
+            try:
+                if platform.system() == "Windows":
+                    self.process.send_signal(signal.CTRL_C_EVENT)
+                else:
+                    self.process.terminate()
+                    time.sleep(1)
+
+                self.subprocess_output.text_output.insert(tkinter.END, "Beck-View-Digitize gestoppt!\n")
+                self.process = None
+            except Exception as e:
+                self.subprocess_output.text_output.insert(tkinter.END,
+                                                          f"Beck-View-GUI - Fehler beim Stoppen von Beck-View-Digitize: {e}\n")
+            finally:
+                self.subprocess_output.text_output.see(tkinter.END)
         else:
-            self.subprocess_output.text_output.insert(tkinter.END, "Kein laufender Digitalisierungsprozess gefunden!\n")
+            self.subprocess_output.text_output.insert(tkinter.END,
+                                                      "Kein laufender Prozess 'Beck-View-Digitize' gefunden!\n")
+            self.subprocess_output.text_output.see(tkinter.END)
 
 
 class Application(ttk.Window):
