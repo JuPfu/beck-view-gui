@@ -182,8 +182,10 @@ class MainMenu(ttk.Menu):
 
 
 class GroupLayout(ttk.Frame):
-    def __init__(self, master):
+    def __init__(self, master, windows: bool):
         super().__init__(master)
+
+        self.windows = windows
 
         # Create other GUI elements
         self.preferences = Preferences(self)
@@ -242,7 +244,9 @@ class GroupLayout(ttk.Frame):
         self.subprocess_output.text_output.insert(tkinter.END, "Starte Digitalisierung...\n")
 
         async def run_digitization():
-            filepath = Path.home().joinpath('PycharmProjects', 'beck-view-digitalize', 'beck-view-digitize.cmd')
+            filepath = Path.home().joinpath('PycharmProjects',
+                                            'beck-view-digitalize',
+                                            'beck-view-digitize.cmd' if self.windows else 'beck-view-digitize')
 
             command = [
                 str(filepath),
@@ -255,7 +259,7 @@ class GroupLayout(ttk.Frame):
                 command.append("--show-monitor")
 
             try:
-                if platform.system() == "Windows":
+                if self.windows:
                     self.process = await asyncio.create_subprocess_exec(
                         *command,
                         stdout=asyncio.subprocess.PIPE,
@@ -287,11 +291,14 @@ class GroupLayout(ttk.Frame):
         if self.process:
             self.subprocess_output.text_output.insert(tkinter.END, "Stoppe Beck-View-Digitize ...\n")
             try:
-                if platform.system() == "Windows":
+                if self.windows:
                     self.process.send_signal(signal.CTRL_C_EVENT)
+                    time.sleep(1)
+                    self.process.terminate()
                 else:
                     self.process.terminate()
-                    time.sleep(1)
+
+                time.sleep(1)
 
                 self.subprocess_output.text_output.insert(tkinter.END, "Beck-View-Digitize gestoppt!\n")
                 self.process = None
@@ -310,6 +317,8 @@ class Application(ttk.Window):
     def __init__(self):
         super().__init__(themename="morph")
 
+        self.windows = platform.system() == "Windows"
+
         self.minsize(width=1080, height=720)
         self.geometry("1080x720")
         self.title("Beck View Digitalisierer")
@@ -320,7 +329,7 @@ class Application(ttk.Window):
         self.menu = MainMenu(self)
         self.config(menu=self.menu)
 
-        self.layout = GroupLayout(self)
+        self.layout = GroupLayout(self, self.windows)
         self.layout.pack(fill=BOTH, expand=YES)
 
         # Integrate asyncio event loop with Tkinter
