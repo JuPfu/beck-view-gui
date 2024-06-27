@@ -1,7 +1,6 @@
 import asyncio
 import os
 import platform
-import signal
 import subprocess
 import time
 import tkinter
@@ -126,7 +125,7 @@ class Preferences(ttk.LabelFrame):
         s.configure('beck-view-gui.TCheckbutton', font=beck_view_font)
         s.map('beck-view-gui.TCheckbutton',
               font=[('focus', ('Helvetica', 14, 'italic'))],
-              background=[('focus', ('white'))],
+              background=[('focus', 'white')],
               )
 
         self.monitor = tkinter.BooleanVar()
@@ -295,8 +294,6 @@ class GroupLayout(ttk.Frame):
             self.subprocess_output.text_output.insert(tkinter.END, "Stoppe Beck-View-Digitize ...\n")
             try:
                 if self.windows:
-                    self.process.send_signal(signal.CTRL_C_EVENT)
-                    time.sleep(1)
                     self.process.terminate()
                 else:
                     self.process.terminate()
