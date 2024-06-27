@@ -260,11 +260,13 @@ class GroupLayout(ttk.Frame):
 
             try:
                 if self.windows:
+                    self.subprocess_output.text_output.insert(tkinter.END,
+                                                              f"Beck-View-Digitize wird mit folgenden Parametern gestartet: {command}\n")
                     self.process = await asyncio.create_subprocess_exec(
                         *command,
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
-                        creationflags=subprocess.HIGH_PRIORITY_CLASS | subprocess.CREATE_NEW_PROCESS_GROUP
+                        creationflags=subprocess.REALTIME_PRIORITY_CLASS | subprocess.CREATE_NEW_PROCESS_GROUP
                     )
                 else:
                     self.process = await asyncio.create_subprocess_exec(
@@ -283,6 +285,7 @@ class GroupLayout(ttk.Frame):
             except Exception as e:
                 self.subprocess_output.text_output.insert(tkinter.END,
                                                           f"Beck-View-GUI: Error starting subprocess: {e}\n")
+            finally:
                 self.subprocess_output.text_output.see(tkinter.END)
 
         self.loop.create_task(run_digitization())
