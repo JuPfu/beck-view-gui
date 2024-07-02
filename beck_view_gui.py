@@ -4,6 +4,7 @@ import platform
 import subprocess
 import time
 import tkinter
+from asyncio import Task
 from pathlib import Path
 
 import ttkbootstrap as ttk
@@ -229,18 +230,19 @@ class GroupLayout(ttk.Frame):
 
         # Store reference to subprocess
         self.process = None
+        self.output_task: Task
 
     async def read_subprocess_output(self, process: asyncio.subprocess.Process):
         # Asynchronously read subprocess output
         while True:
-            line = await process.stdout.readline()  # Await the async readline directly
+            line = await process.stdout.readline()
             if not line:
                 break
             self.subprocess_output.text_output.insert(tkinter.END, line.decode())
             self.subprocess_output.text_output.see(tkinter.END)
 
     def start_digitization(self):
-        self.subprocess_output.text_output.insert(tkinter.END, "Starte Digitalisierung...\n")
+        self.subprocess_output.text_output.insert(tkinter.END, "Beck-View-GUI - Starte Digitalisierung...\n")
 
         async def run_digitization():
             filepath = Path.home().joinpath('PycharmProjects',
@@ -257,10 +259,10 @@ class GroupLayout(ttk.Frame):
             if self.preferences.monitor.get():
                 command.append("--show-monitor")
 
+            self.subprocess_output.text_output.insert(tkinter.END,
+                                                      f"Beck-View-GUI - Beck-View-Digitize wird mit folgenden Parametern gestartet: {command}\n")
             try:
                 if self.windows:
-                    self.subprocess_output.text_output.insert(tkinter.END,
-                                                              f"Beck-View-Digitize wird mit folgenden Parametern gestartet: {command}\n")
                     self.process = await asyncio.create_subprocess_exec(
                         *command,
                         stdout=asyncio.subprocess.PIPE,
@@ -276,14 +278,19 @@ class GroupLayout(ttk.Frame):
                     )
 
                 # Start reading subprocess output asynchronously
-                self.loop.create_task(self.read_subprocess_output(self.process))
+                self.output_task = self.loop.create_task(self.read_subprocess_output(self.process))
 
                 # Wait for the process to finish
                 await self.process.wait()
+                await self.output_task
+
+                self.subprocess_output.text_output.insert(tkinter.END,
+                                                          f"Beck-View-GUI - Beck-View-Digitize wurde mit Return-Code '{self.process.returncode}' beendet. \n")
+                self.process = None
 
             except Exception as e:
                 self.subprocess_output.text_output.insert(tkinter.END,
-                                                          f"Beck-View-GUI: Error starting subprocess: {e}\n")
+                                                          f"Beck-View-GUI - Error starting subprocess: {e}\n")
             finally:
                 self.subprocess_output.text_output.see(tkinter.END)
 
@@ -291,8 +298,13 @@ class GroupLayout(ttk.Frame):
 
     def stop_digitization(self):
         if self.process:
-            self.subprocess_output.text_output.insert(tkinter.END, "Stoppe Beck-View-Digitize ...\n")
+            self.subprocess_output.text_output.insert(tkinter.END, "Beck-View-GUI - Stoppe Beck-View-Digitize ...\n")
             try:
+                if not self.output_task.cancelled():
+                    self.subprocess_output.text_output.insert(tkinter.END,
+                                                              "Beck-View-GUI - Beende Ausgabe von Nachrichten gesendet von Beck-View-Digitize ...\n")
+                    self.output_task.cancel()
+
                 if self.windows:
                     self.process.terminate()
                 else:
@@ -300,7 +312,7 @@ class GroupLayout(ttk.Frame):
 
                 time.sleep(1)
 
-                self.subprocess_output.text_output.insert(tkinter.END, "Beck-View-Digitize gestoppt!\n")
+                self.subprocess_output.text_output.insert(tkinter.END, "Beck-View-GUI - Beck-View-Digitize gestoppt!\n")
                 self.process = None
             except Exception as e:
                 self.subprocess_output.text_output.insert(tkinter.END,
@@ -309,7 +321,7 @@ class GroupLayout(ttk.Frame):
                 self.subprocess_output.text_output.see(tkinter.END)
         else:
             self.subprocess_output.text_output.insert(tkinter.END,
-                                                      "Kein laufender Prozess 'Beck-View-Digitize' gefunden!\n")
+                                                      "Beck-View-GUI - Kein laufender Prozess 'Beck-View-Digitize' gefunden!\n")
             self.subprocess_output.text_output.see(tkinter.END)
 
 
