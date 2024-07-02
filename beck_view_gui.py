@@ -1,6 +1,7 @@
 import asyncio
 import os
 import platform
+import signal
 import subprocess
 import time
 import tkinter
@@ -306,7 +307,7 @@ class GroupLayout(ttk.Frame):
                     self.output_task.cancel()
 
                 if self.windows:
-                    self.process.terminate()
+                    self.process.send_signal(signal.CTRL_BREAK_EVENT)
                 else:
                     self.process.terminate()
 
