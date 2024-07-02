@@ -112,6 +112,10 @@ class Preferences(ttk.LabelFrame):
             "43600 (180-m-Kassette)",
             "60000 (250-m-Kassette)"
         ]
+        # increase font size for Listbox of Combobox
+        list_font = ttk.font.Font(family="Helvetica", size=14)
+        self.master.option_add("*TCombobox*Listbox*Font", list_font)
+
         self.frame_counter = ttk.Combobox(self,
                                           font=beck_view_font,
                                           values=self.frame_counter_values,
