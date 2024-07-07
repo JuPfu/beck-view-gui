@@ -140,6 +140,7 @@ class Preferences(ttk.LabelFrame):
         self.monitor_checkbutton = ttk.Checkbutton(self, text="Monitor-Fenster anzeigen",
                                                    onvalue=True, offvalue=False,
                                                    variable=self.monitor,
+                                                   padding="0  10",
                                                    style='beck-view-gui.TCheckbutton'
                                                    )
         self.monitor_checkbutton.grid(row=2, column=1, padx=(10, 0), pady=(15, 10), sticky="ew")
