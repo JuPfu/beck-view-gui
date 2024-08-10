@@ -135,7 +135,7 @@ class Preferences(ttk.LabelFrame):
               )
 
         self.monitor = tkinter.BooleanVar()
-        self.monitor.set(False)
+        self.monitor.set(True)
 
         self.monitor_checkbutton = ttk.Checkbutton(self, text="Monitor-Fenster anzeigen",
                                                    onvalue=True, offvalue=False,
@@ -148,6 +148,21 @@ class Preferences(ttk.LabelFrame):
                 text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.\nReduziert die "
                      "Digitalisierungs-geschwindigkeit.",
                 bootstyle="INFO, INVERSE")
+
+        if os.name == 'nt':
+            self.display_menu = tkinter.BooleanVar()
+            self.display_menu.set(False)
+
+            self.display_menu_checkbutton = ttk.Checkbutton(self, text="Einstellungsfenster anzeigen",
+                                                            onvalue=True, offvalue=False,
+                                                            variable=self.display_menu,
+                                                            padding="0  10",
+                                                            style='beck-view-gui.TCheckbutton'
+                                                            )
+            self.display_menu_checkbutton.grid(row=2, column=2, padx=(10, 0), pady=(15, 10), sticky="ew")
+            ToolTip(self.display_menu_checkbutton,
+                    text="Unter Windows können die Konfigurationsparameter der Kamera in einem separaten Dialog angezeigt und geändert werden.",
+                    bootstyle="INFO, INVERSE")
 
         self.panel = ttk.Frame(self, borderwidth=0)
         self.panel.grid(row=0, column=3, rowspan=3, padx=(10, 10), pady=(10, 10), sticky="ewns")
@@ -264,6 +279,9 @@ class GroupLayout(ttk.Frame):
             ]
             if self.preferences.monitor.get():
                 command.append("--show-monitor")
+
+            if os.name == 'nt' and self.preferences.display_menu.get():
+                command.append("--show-menu")
 
             self.subprocess_output.text_output.insert(tkinter.END,
                                                       f"Beck-View-GUI - Beck-View-Digitize wird mit folgenden Parametern gestartet: {command}\n")
