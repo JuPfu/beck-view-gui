@@ -196,10 +196,15 @@ class MainMenu(ttk.Menu):
         self.add_cascade(label="Datei", menu=self.file_menu, underline=0)
 
         self.window_menu = tkinter.Menu(self, tearoff=0)
-        self.window_menu.add_command(label="Minimieren")
-        self.window_menu.add_command(label="Vollbild")
+        self.window_menu.add_command(label="Normal", command=self.normal)
+        self.window_menu.add_command(label="Vollbild", command=self.maximize)
         self.add_cascade(label="Fenster", menu=self.window_menu, underline=0)
 
+    def maximize(self):
+        app.state("zoomed")
+
+    def normal(self):
+        app.state("normal")
 
 class GroupLayout(ttk.Frame):
     def __init__(self, master, windows: bool):
@@ -369,6 +374,7 @@ class Application(ttk.Window):
 
         # Integrate asyncio event loop with Tkinter
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
         self.loop = self.layout.loop
         self.update_loop()
 
