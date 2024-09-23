@@ -71,7 +71,7 @@ class TechnicalAttributes(ttk.LabelFrame):
         self.batch_label.grid(row=row, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
         self.batch = ttk.Spinbox(self, font=beck_view_font, from_=1, to=100, state=ttk.READONLY)
         self.batch.grid(row=row, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.batch.set(8)
+        self.batch.set(10)
         ToolTip(self.batch,
                 text="Anzahl Bilder die in einem `Paket`parallel verarbeitet werden. Beeinflusst die "
                      "Verarbeitungs-geschwindigkeit.\nWertebereich 1 bis 99.",
@@ -89,10 +89,10 @@ class Preferences(ttk.LabelFrame):
 
         self.logo = ttk.PhotoImage(file="beck-view-logo.png")
         self.logo_label = ttk.Label(self, image=self.logo)
-        self.logo_label.grid(row=0, column=0, rowspan=3, padx=(10, 0), pady=(10, 10), sticky="ew")
+        self.logo_label.grid(row=0, column=0, rowspan=3, padx=(10, 0), pady=(0, 0), sticky="ew")
 
         self.device_label = ttk.Label(self, font=beck_view_font, text="Gerätenummer der Kamera")
-        self.device_label.grid(row=0, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
+        self.device_label.grid(row=0, column=1, padx=(10, 40), pady=(10, 10), sticky="ew")
         self.device = ttk.Spinbox(self, font=beck_view_font, from_=0, to=9, state=ttk.READONLY)
         self.device.grid(row=0, column=2, padx=(0, 10), pady=(10, 10), sticky="ew")
         self.device.set(0)
@@ -122,7 +122,7 @@ class Preferences(ttk.LabelFrame):
                                           state=ttk.READONLY)
 
         self.frame_counter.grid(row=1, column=2, padx=(0, 10), pady=(10, 10), sticky="ew")
-        self.frame_counter.current(1)
+        self.frame_counter.current(0)
         ToolTip(self.frame_counter,
                 text="Notbremse - beendet die Digitalisierung spätestens bei Erreichen der ausgewählten Anzahl Bilder.",
                 bootstyle="INFO, INVERSE")
@@ -140,28 +140,27 @@ class Preferences(ttk.LabelFrame):
         self.monitor_checkbutton = ttk.Checkbutton(self, text="Monitor-Fenster anzeigen",
                                                    onvalue=True, offvalue=False,
                                                    variable=self.monitor,
-                                                   padding="0  10",
+                                                   padding="5  10",
                                                    style='beck-view-gui.TCheckbutton'
                                                    )
-        self.monitor_checkbutton.grid(row=2, column=1, padx=(10, 0), pady=(15, 10), sticky="ew")
+        self.monitor_checkbutton.grid(row=2, column=1, padx=(5, 0), pady=(15, 10), sticky="ew")
         ToolTip(self.monitor_checkbutton,
-                text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.\nReduziert die "
-                     "Digitalisierungs-geschwindigkeit.",
+                text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.",
                 bootstyle="INFO, INVERSE")
 
         if os.name == 'nt':
             self.display_menu = tkinter.BooleanVar()
             self.display_menu.set(False)
 
-            self.display_menu_checkbutton = ttk.Checkbutton(self, text="Einstellungsfenster anzeigen",
+            self.display_menu_checkbutton = ttk.Checkbutton(self, text="Einstellungsfenster anzeigen ",
                                                             onvalue=True, offvalue=False,
                                                             variable=self.display_menu,
-                                                            padding="0  10",
+                                                            padding="5  10",
                                                             style='beck-view-gui.TCheckbutton'
                                                             )
-            self.display_menu_checkbutton.grid(row=2, column=2, padx=(10, 0), pady=(15, 10), sticky="ew")
+            self.display_menu_checkbutton.grid(row=2, column=2, padx=(5, 0), pady=(15, 10), sticky="ew")
             ToolTip(self.display_menu_checkbutton,
-                    text="Unter Windows können die Konfigurationsparameter der Kamera in einem separaten Dialog angezeigt und geändert werden.",
+                    text="Unter Windows separaten Dialog mit den Konfigurationsparametern der Kamera anzeigen (Direct-Show). Ansonsten wird unter Windows das MS Media Foundation API verwendet.",
                     bootstyle="INFO, INVERSE")
 
         self.panel = ttk.Frame(self, borderwidth=0)
@@ -268,7 +267,7 @@ class GroupLayout(ttk.Frame):
         async def run_digitization():
             filepath = Path.home().joinpath('PycharmProjects',
                                             'beck-view-digitalize',
-                                            'beck-view-digitize.cmd' if self.windows else 'beck-view-digitize')
+                                            'digitize.cmd' if self.windows else 'beck-view-digitize')
 
             command = [
                 str(filepath),
