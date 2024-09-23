@@ -196,7 +196,7 @@ class MainMenu(ttk.Menu):
         self.add_cascade(label="Datei", menu=self.file_menu, underline=0)
 
         self.window_menu = tkinter.Menu(self, tearoff=0)
-        self.window_menu.add_command(label="Normal", command=self.normal, background="red")
+        self.window_menu.add_command(label="Normal", command=self.normal)
         self.window_menu.add_command(label="Vollbild", command=self.maximize)
         self.window_menu.add_command(label="Minimiert", command=self.minimize)
         self.add_cascade(label="Fenster", menu=self.window_menu, underline=0)
