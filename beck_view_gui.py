@@ -150,7 +150,7 @@ class Preferences(ttk.LabelFrame):
 
         if os.name == 'nt':
             self.display_menu = tkinter.BooleanVar()
-            self.display_menu.set(False)
+            self.display_menu.set(True)
 
             self.display_menu_checkbutton = ttk.Checkbutton(self, text="Einstellungsfenster anzeigen ",
                                                             onvalue=True, offvalue=False,
