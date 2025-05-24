@@ -122,7 +122,7 @@ class Preferences(ttk.LabelFrame):
                                           state=ttk.READONLY)
 
         self.frame_counter.grid(row=1, column=2, padx=(0, 10), pady=(10, 10), sticky="ew")
-        self.frame_counter.current(0)
+        self.frame_counter.current(3)
         ToolTip(self.frame_counter,
                 text="Notbremse - beendet die Digitalisierung spätestens bei Erreichen der ausgewählten Anzahl Bilder.",
                 bootstyle="INFO, INVERSE")
