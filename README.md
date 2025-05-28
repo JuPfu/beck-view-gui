@@ -80,16 +80,20 @@ To distribute Beck View GUI as a standalone executable, you can use Nuitka, a Py
     Navigate to the project directory where `beck-view_gui.py` is located and run:
 
    -  Windows
-    ```sh
-    python -m nuitka  --windows-console-mode=disable --windows-icon-from-ico=beck-view-digitize.png -o "beck-view-gui" beck_view_gui.py
-    ```
+   ```sh
+   python -m nuitka  --windows-console-mode=disable --windows-icon-from-ico=beck-view-digitize.png -o "beck-view-gui" beck_view_gui.py
+   ```
    -  MacOS
-    ```sh
-    python3 -m nuitka  --macos-app-icon=beck-view-digitize.png  --enable-plugin=tk-inter --follow-imports --onefile --macos-app-mode=gui -o "beck-view-gui" beck_view_gui.py
-    ```
-    With `Nuitka` version 2.1.6 the build process fails on macOS
-    > [!WARNING]
-    >  FATAL: Error, call to 'codesign' failed: ['/usr/bin/codesign', '-s', '-', '--force', '--deep', '--preserve-metadata=entitlements', 'beck-view-gui'] -> b'beck-view-gui: bundle format unrecognized, invalid, or unsuitable\nIn subcomponent: /Users/jp/PycharmProjects/beck-view-gui/beck_view_gui.build'.
+
+   ```sh
+   python3 -m nuitka  --macos-app-icon=beck-view-digitize.png  --enable-plugin=tk-inter --follow-imports --onefile --static-libpython=no --standalone --macos-app-mode=gui --tcl-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.1/lib --tk-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.1/lib -o "beck-view-gui" beck_view_gui.py
+   ```
+   With `Nuitka` version 2.2.6 the build process fails on macOS
+
+    >  FATAL: Error, call to '/usr/bin/codesign' failed: ['/usr/bin/codesign', '-s', '-', '--force', '--deep', '--preserve-metadata=entitlements', 'beck-view-gui'] -> b'beck-view-gui: bundle format unrecognized, invalid, or unsuitable\nIn subcomponent: /Users/jp/PycharmProjects/beck-view-gui/beck_view_gui.onefile-build'.
+
+   Nevetheless a `beck-view-gui` file had been created. After applying `chmod +x` on this file the application seems to work.
+
 
 2. **Running the Executable:**
 
@@ -100,6 +104,19 @@ To distribute Beck View GUI as a standalone executable, you can use Nuitka, a Py
         ```sh
         beck-view-gui.exe
         ```
+      or
+         ```bat
+         python beck_view_gui.py
+         ```
+       - On Unix or MacOS:
+
+        ```sh
+        beck-view-gui
+        ```
+      or
+         ```sh
+         python beck_view_gui.py
+         ```
       ![Beck View GUI](./assets/img/beck-view-gui.png)
       Beck-View-GUI started without FT232H Chip attached
 ## Contributing
