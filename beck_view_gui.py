@@ -91,40 +91,36 @@ class Preferences(ttk.LabelFrame):
         self.logo_label = ttk.Label(self, image=self.logo)
         self.logo_label.grid(row=0, column=0, rowspan=3, padx=(10, 0), pady=(0, 0), sticky="ew")
 
-        self.device_label = ttk.Label(self, font=beck_view_font, text="Gerätenummer der Kamera")
-        self.device_label.grid(row=0, column=1, padx=(10, 40), pady=(10, 10), sticky="ew")
-        self.device = ttk.Spinbox(self, font=beck_view_font, from_=0, to=9, state=ttk.READONLY)
-        self.device.grid(row=0, column=2, padx=(0, 10), pady=(10, 10), sticky="ew")
+        self.panel = ttk.Frame(self, borderwidth=3)
+        self.panel.grid(row=0, column=1, rowspan=2, columnspan=4, padx=(0, 0), pady=(0, 0), sticky="ewns")
+
+        self.device_label = ttk.Label(self.panel, font=beck_view_font, text="Gerätenummer der Kamera")
+        self.device_label.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
+        self.device = ttk.Spinbox(self.panel, font=beck_view_font, from_=0, to=9, state=ttk.READONLY)
+        self.device.grid(row=0, column=1, padx=(0, 10), pady=(10, 10), sticky="ew")
         self.device.set(0)
         ToolTip(self.device,
                 text="Vom System vergebene Geräte-Id.\nZulässiger Wertebereich ist 0 bis 9.",
                 bootstyle="INFO, INVERSE")
 
-        self.frame_counter_label = ttk.Label(self,
-                                             font=beck_view_font,
-                                             text="Maximale Anzahl Bilder")
-        self.frame_counter_label.grid(row=1, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.frame_counter_values = [
-            "3600 (15-m-Kassette)",
-            "7200 (30-m-Kassette)",
-            "14400 (60-m-Kassette)",
-            "21800 (90-m-Kassette)",
-            "43600 (180-m-Kassette)",
-            "60000 (250-m-Kassette)"
+        self.film_resolution_values = [
+            "1600 x 1200",
+            "1920 x 1080",
+            "2048 x 1536",
+            "2592 x 1944",
+            "3840 x 2160",
         ]
-        # increase font size for Listbox of Combobox
-        list_font = ttk.font.Font(family="Helvetica", size=14)
-        self.master.option_add("*TCombobox*Listbox*Font", list_font)
 
-        self.frame_counter = ttk.Combobox(self,
-                                          font=beck_view_font,
-                                          values=self.frame_counter_values,
-                                          state=ttk.READONLY)
-
-        self.frame_counter.grid(row=1, column=2, padx=(0, 10), pady=(10, 10), sticky="ew")
-        self.frame_counter.current(3)
-        ToolTip(self.frame_counter,
-                text="Notbremse - beendet die Digitalisierung spätestens bei Erreichen der ausgewählten Anzahl Bilder.",
+        self.film_resolution_label = ttk.Label(self.panel, font=beck_view_font, text="Auflösung")
+        self.film_resolution_label.grid(row=1, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
+        self.film_resolution = ttk.Combobox(self.panel,
+                                            font=beck_view_font,
+                                            values=self.film_resolution_values,
+                                            state=ttk.READONLY)
+        self.film_resolution.grid(row=1, column=1, padx=(0, 10), pady=(10, 10), sticky="ew")
+        self.film_resolution.current(1)
+        ToolTip(self.film_resolution,
+                text="Auflösung in horizontaler und vertikaler Richtung.",
                 bootstyle="INFO, INVERSE")
 
         s = ttk.Style()
@@ -137,34 +133,58 @@ class Preferences(ttk.LabelFrame):
         self.monitor = tkinter.BooleanVar()
         self.monitor.set(True)
 
-        self.monitor_checkbutton = ttk.Checkbutton(self, text="Monitor-Fenster anzeigen",
+        self.monitor_checkbutton = ttk.Checkbutton(self.panel, text="Monitor-Fenster anzeigen",
                                                    onvalue=True, offvalue=False,
                                                    variable=self.monitor,
                                                    padding="5  10",
                                                    style='beck-view-gui.TCheckbutton'
                                                    )
-        self.monitor_checkbutton.grid(row=2, column=1, padx=(5, 0), pady=(15, 10), sticky="ew")
+        self.monitor_checkbutton.grid(row=1, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
         ToolTip(self.monitor_checkbutton,
                 text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.",
+                bootstyle="INFO, INVERSE")
+
+        self.frame_counter_label = ttk.Label(self.panel,
+                                             font=beck_view_font,
+                                             text="Maximale Anzahl Bilder")
+        self.frame_counter_label.grid(row=2, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
+        self.frame_counter_values = [
+            "3600 (15-m-Kassette)",
+            "7200 (30-m-Kassette)",
+            "14400 (60-m-Kassette)",
+            "21800 (90-m-Kassette)",
+            "43600 (180-m-Kassette)",
+            "60000 (250-m-Kassette)"
+        ]
+        # increase font size for Listbox of Combobox
+        list_font = ttk.font.Font(family="Helvetica", size=14)
+        self.master.option_add("*TCombobox*Listbox*Font", list_font)
+
+        self.frame_counter = ttk.Combobox(self.panel,
+                                          font=beck_view_font,
+                                          values=self.frame_counter_values,
+                                          state=ttk.READONLY)
+
+        self.frame_counter.grid(row=2, column=1, padx=(0, 10), pady=(5, 5), sticky="ew")
+        self.frame_counter.current(3)
+        ToolTip(self.frame_counter,
+                text="Notbremse - beendet die Digitalisierung spätestens bei Erreichen der ausgewählten Anzahl Bilder.",
                 bootstyle="INFO, INVERSE")
 
         if os.name == 'nt':
             self.display_menu = tkinter.BooleanVar()
             self.display_menu.set(True)
 
-            self.display_menu_checkbutton = ttk.Checkbutton(self, text="Einstellungsfenster anzeigen ",
+            self.display_menu_checkbutton = ttk.Checkbutton(self.panel, text="Einstellungsfenster anzeigen ",
                                                             onvalue=True, offvalue=False,
                                                             variable=self.display_menu,
                                                             padding="5  10",
                                                             style='beck-view-gui.TCheckbutton'
                                                             )
-            self.display_menu_checkbutton.grid(row=2, column=2, padx=(5, 0), pady=(15, 10), sticky="ew")
+            self.display_menu_checkbutton.grid(row=2, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
             ToolTip(self.display_menu_checkbutton,
                     text="Unter Windows separaten Dialog mit den Konfigurationsparametern der Kamera anzeigen (Direct-Show). Ansonsten wird unter Windows das MS Media Foundation API verwendet.",
                     bootstyle="INFO, INVERSE")
-
-        self.panel = ttk.Frame(self, borderwidth=0)
-        self.panel.grid(row=0, column=3, rowspan=3, padx=(10, 10), pady=(10, 10), sticky="ewns")
 
 
 class SubprocessOutput(ttk.LabelFrame):
@@ -278,10 +298,14 @@ class GroupLayout(ttk.Frame):
             filepath = Path.home().joinpath('PycharmProjects',
                                             'beck-view-digitalize',
                                             'digitize.cmd' if self.windows else 'beck-view-digitize')
+            width_height = self.preferences.film_resolution.get().split(" x ")
+            width = width_height[0]
+            height = width_height[1]
 
             command = [
                 str(filepath),
                 f"--device={self.preferences.device.get()}",
+                f"--width_height={width} {height}",
                 f"--max-count={self.preferences.frame_counter.get().split()[0]}",
                 f"--output-path={self.output_directory.directory_path.get()}",
                 f"--chunk-size={self.technical_attributes.batch.get()}"
