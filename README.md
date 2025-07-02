@@ -3,6 +3,10 @@
 The Beck-View GUI App supplies a user-friendly interface to configure the various settings for the [Beck-View-Digitalize](https://github.com/JuPfu/beck-view-digitalize)
 Application, such as output directory, camera device number, and other technical attributes. It is built
 using `ttkbootstrap` for a modern and consistent look and feel across different operating systems.
+
+![Beck View GUI](./assets/img/beck-view-gui.png)
+Beck-View-GUI started without FT232H Chip attached
+
 ## Features
 
 - **Device Configuration**: Select the camera device and set the maximum number of frames to digitize.
@@ -118,8 +122,7 @@ To distribute Beck View GUI as a standalone executable, you can use Nuitka, a Py
          ```sh
          python beck_view_gui.py
          ```
-      ![Beck View GUI](./assets/img/beck-view-gui.png)
-      Beck-View-GUI started without FT232H Chip attached
+      
 ## Contributing
 
 Contributions are welcome! Please follow these steps:
