@@ -46,6 +46,7 @@ using `ttkbootstrap` for a modern and consistent look and feel across different 
 2. **Configure Settings**:
    - Select the camera device number.
    - Choose the maximum number of frames to digitize.
+   - Choose the resolution which is used to digitise images.
    - Set the output directory for digitized images.
    - Adjust the chunk size for parallel image processing.
    - Enable the monitor window if needed.
@@ -86,9 +87,9 @@ To distribute Beck View GUI as a standalone executable, you can use Nuitka, a Py
    -  MacOS
 
    ```sh
-   python3 -m nuitka  --macos-app-icon=beck-view-digitize.png  --enable-plugin=tk-inter --follow-imports --onefile --static-libpython=no --standalone --macos-app-mode=gui --tcl-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.1/lib --tk-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.1/lib -o "beck-view-gui" beck_view_gui.py
+   python3 -m nuitka  --product-name="beck-view-gui" --standalone --macos-app-icon=beck-view-digitize.png --macos-app-mode=gui --onefile --enable-plugin=tk-inter --tcl-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.1/lib --tk-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.1/lib --static-libpython=no -o "beck-view-gui" beck_view_gui.py
    ```
-   With `Nuitka` version 2.2.6 the build process fails on macOS
+   With `Nuitka` version 2.7.11 the build process emits an error message on macOS
 
     >  FATAL: Error, call to '/usr/bin/codesign' failed: ['/usr/bin/codesign', '-s', '-', '--force', '--deep', '--preserve-metadata=entitlements', 'beck-view-gui'] -> b'beck-view-gui: bundle format unrecognized, invalid, or unsuitable\nIn subcomponent: /Users/jp/PycharmProjects/beck-view-gui/beck_view_gui.onefile-build'.
 

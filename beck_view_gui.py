@@ -313,7 +313,7 @@ class GroupLayout(ttk.Frame):
             if self.preferences.monitor.get():
                 command.append("--show-monitor")
 
-            if os.name == 'nt' and self.preferences.display_menu.get():
+            if os.name != 'nt' and self.preferences.display_menu.get():
                 command.append("--show-menu")
 
             self.subprocess_output.text_output.insert(tkinter.END,

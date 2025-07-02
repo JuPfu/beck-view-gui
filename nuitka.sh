@@ -1,0 +1,1 @@
+python3 -m nuitka  --product-name="beck-view-gui" --standalone --macos-app-icon=beck-view-digitize.png --macos-app-mode=gui --onefile --enable-plugin=tk-inter --tcl-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.1/lib --tk-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.1/lib --static-libpython=no -o "beck-view-gui" beck_view_gui.py
