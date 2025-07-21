@@ -131,7 +131,7 @@ class Preferences(ttk.LabelFrame):
               )
 
         self.monitor = tkinter.BooleanVar()
-        self.monitor.set(True)
+        self.monitor.set(False)
 
         self.monitor_checkbutton = ttk.Checkbutton(self.panel, text="Monitor-Fenster anzeigen",
                                                    onvalue=True, offvalue=False,
