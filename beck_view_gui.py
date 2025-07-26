@@ -67,7 +67,7 @@ class TechnicalAttributes(ttk.LabelFrame):
         row = 0
 
         self.batch_label = ttk.Label(self, font=beck_view_font,
-                                     text="Anzahl Bilder, die jedem Prozess übergeben wird")
+                                     text="Anzahl Bilder, die jedem Prozess übergeben werden")
         self.batch_label.grid(row=row, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
         self.batch = ttk.Spinbox(self, font=beck_view_font, from_=1, to=100, state=ttk.READONLY)
         self.batch.grid(row=row, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
