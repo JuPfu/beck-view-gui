@@ -103,6 +103,9 @@ class Preferences(ttk.LabelFrame):
                 text="Vom System vergebene Geräte-Id.\nZulässiger Wertebereich ist 0 bis 9.",
                 bootstyle="INFO, INVERSE")
 
+        self.film_resolution_label = ttk.Label(self.panel, font=beck_view_font, text="Auflösung")
+        self.film_resolution_label.grid(row=1, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
+
         self.film_resolution_values = [
             "1600 x 1200",
             "1920 x 1080",
@@ -111,8 +114,10 @@ class Preferences(ttk.LabelFrame):
             "3840 x 2160",
         ]
 
-        self.film_resolution_label = ttk.Label(self.panel, font=beck_view_font, text="Auflösung")
-        self.film_resolution_label.grid(row=1, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
+        # increase font size for Listbox of Combobox
+        list_font = ttk.font.Font(family="Helvetica", size=14)
+        self.master.option_add("*TCombobox*Listbox*Font", list_font)
+
         self.film_resolution = ttk.Combobox(self.panel,
                                             font=beck_view_font,
                                             values=self.film_resolution_values,
@@ -313,7 +318,7 @@ class GroupLayout(ttk.Frame):
             if self.preferences.monitor.get():
                 command.append("--show-monitor")
 
-            if os.name != 'nt' and self.preferences.display_menu.get():
+            if os.name == 'nt' and self.preferences.display_menu.get():
                 command.append("--show-menu")
 
             self.subprocess_output.text_output.insert(tkinter.END,
@@ -388,8 +393,8 @@ class Application(ttk.Window):
 
         self.windows = platform.system() == "Windows"
 
-        self.minsize(width=1080, height=720)
-        self.geometry("1080x720")
+        self.minsize(width=1280, height=800)
+        self.geometry("1280x800")
         self.title("Beck View Digitalisierer")
         self.option_add("*tearOff", False)
 
