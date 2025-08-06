@@ -310,10 +310,12 @@ class GroupLayout(ttk.Frame):
             command = [
                 str(filepath),
                 f"--device={self.preferences.device.get()}",
-                f"--width_height={width} {height}",
+                f"--width={width}",
+                f"--height={height}",
                 f"--max-count={self.preferences.frame_counter.get().split()[0]}",
                 f"--output-path={self.output_directory.directory_path.get()}",
-                f"--chunk-size={self.technical_attributes.batch.get()}"
+                f"--chunk-size={self.technical_attributes.batch.get()}",
+                "--gui"
             ]
             if self.preferences.monitor.get():
                 command.append("--show-monitor")
