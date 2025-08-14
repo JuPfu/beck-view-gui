@@ -172,20 +172,6 @@ class Preferences(ttk.LabelFrame):
                 text="Belichtungsreihe aktivieren (Exposure Bracketing)",
                 bootstyle="INFO, INVERSE")
 
-        self.monitor = tkinter.BooleanVar()
-        self.monitor.set(False)
-
-        self.monitor_checkbutton = ttk.Checkbutton(self.panel, text="Monitor-Fenster anzeigen",
-                                                   onvalue=True, offvalue=False,
-                                                   variable=self.monitor,
-                                                   padding="5  10",
-                                                   style='beck-view-gui.TCheckbutton'
-                                                   )
-        self.monitor_checkbutton.grid(row=1, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
-        ToolTip(self.monitor_checkbutton,
-                text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.",
-                bootstyle="INFO, INVERSE")
-
         if os.name == 'nt':
             self.display_menu = tkinter.BooleanVar()
             self.display_menu.set(True)
@@ -320,16 +306,14 @@ class GroupLayout(ttk.Frame):
             command = [
                 str(filepath),
                 f"--device={self.preferences.device.get()}",
-                f"--width_height={width} {height}",
+                f"--width={width}",
+                f"--height={height}",
                 f"--max-count={self.preferences.frame_counter.get().split()[0]}",
                 f"--output-path={self.output_directory.directory_path.get()}",
                 f"--chunk-size={self.technical_attributes.batch.get()}"
             ]
             if self.preferences.exposure_bracketing.get():
                 command.append("--bracketing")
-
-            if self.preferences.monitor.get():
-                command.append("--show-monitor")
 
             if os.name == 'nt' and self.preferences.display_menu.get():
                 command.append("--show-menu")
@@ -406,8 +390,8 @@ class Application(ttk.Window):
 
         self.windows = platform.system() == "Windows"
 
-        self.minsize(width=1080, height=720)
-        self.geometry("1080x720")
+        self.minsize(width=1280, height=800)
+        self.geometry("1280x800")
         self.title("Beck View Digitalisierer")
         self.option_add("*tearOff", False)
 

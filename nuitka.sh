@@ -1,1 +1,2 @@
-python3 -m nuitka --onefile --macos-create-app-bundle --product-name="beck-view-gui" --macos-app-icon="beck-view-logo.png" --macos-app-mode=gui --enable-plugin=tk-inter --tcl-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.2/lib --tk-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.2/lib --static-libpython=no -o "beck-view-gui" beck_view_gui.py
+rm -rf beck-view-gui.app beck-view-gui.dist beck-view-gui.onefile-build
+python3 -m nuitka --onefile --macos-create-app-bundle --product-name="beck-view-gui" --macos-app-icon="beck-view-logo.png" --macos-app-mode=gui --enable-plugin=tk-inter --tcl-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.2/lib --tk-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.2/lib --static-libpython=no -o "beck-view-gui" beck-view-gui.py
