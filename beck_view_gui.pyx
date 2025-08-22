@@ -1,3 +1,5 @@
+import cython
+
 import asyncio
 import os
 import platform
