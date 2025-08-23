@@ -88,8 +88,7 @@ class Preferences(ttk.LabelFrame):
         self.configure(borderwidth=3, text="Einstellungen", relief=SOLID)
 
         # increase font size for Listbox of Combobox
-        list_font = ttk.font.Font(family="Helvetica", size=14)
-        self.master.option_add("*TCombobox*Listbox*Font", list_font)
+        self.master.option_add("*TCombobox*Listbox*Font", beck_view_font)
 
         self.logo = ttk.PhotoImage(file="beck-view-logo.png")
         self.logo_label = ttk.Label(self, image=self.logo)
@@ -107,6 +106,9 @@ class Preferences(ttk.LabelFrame):
                 text="Vom System vergebene Geräte-Id.\nZulässiger Wertebereich ist 0 bis 9.",
                 bootstyle="INFO, INVERSE")
 
+        self.film_resolution_label = ttk.Label(self.panel, font=beck_view_font, text="Auflösung")
+        self.film_resolution_label.grid(row=1, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
+
         self.film_resolution_values = [
             "1600 x 1200",
             "1920 x 1080",
@@ -115,8 +117,6 @@ class Preferences(ttk.LabelFrame):
             "3840 x 2160",
         ]
 
-        self.film_resolution_label = ttk.Label(self.panel, font=beck_view_font, text="Auflösung")
-        self.film_resolution_label.grid(row=1, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
         self.film_resolution = ttk.Combobox(self.panel,
                                             font=beck_view_font,
                                             values=self.film_resolution_values,
@@ -125,6 +125,27 @@ class Preferences(ttk.LabelFrame):
         self.film_resolution.current(1)
         ToolTip(self.film_resolution,
                 text="Auflösung in horizontaler und vertikaler Richtung.",
+                bootstyle="INFO, INVERSE")
+
+        s = ttk.Style()
+        s.configure('beck-view-gui.TCheckbutton', font=beck_view_font)
+        s.map('beck-view-gui.TCheckbutton',
+              font=[('focus', ('Helvetica', 14, 'italic'))],
+              background=[('focus', 'white')],
+              )
+
+        self.monitor = tkinter.BooleanVar()
+        self.monitor.set(False)
+
+        self.monitor_checkbutton = ttk.Checkbutton(self.panel, text="Monitor-Fenster anzeigen",
+                                                   onvalue=True, offvalue=False,
+                                                   variable=self.monitor,
+                                                   padding="5  10",
+                                                   style='beck-view-gui.TCheckbutton'
+                                                   )
+        self.monitor_checkbutton.grid(row=1, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
+        ToolTip(self.monitor_checkbutton,
+                text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.",
                 bootstyle="INFO, INVERSE")
 
         self.frame_counter_label = ttk.Label(self.panel,
@@ -310,8 +331,13 @@ class GroupLayout(ttk.Frame):
                 f"--height={height}",
                 f"--max-count={self.preferences.frame_counter.get().split()[0]}",
                 f"--output-path={self.output_directory.directory_path.get()}",
-                f"--chunk-size={self.technical_attributes.batch.get()}"
+                f"--chunk-size={self.technical_attributes.batch.get()}",
+                "--gui"
             ]
+
+            if self.preferences.monitor.get():
+                command.append("--show-monitor")
+
             if self.preferences.exposure_bracketing.get():
                 command.append("--bracketing")
 
