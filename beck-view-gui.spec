@@ -21,7 +21,7 @@ print(f"Found following *.so files {cython_so_files}")
 # numpy_binaries = collect_dynamic_libs("numpy")
 
 a = Analysis(
-    ['beck_view_gui.pyx'],  # your stub that imports main
+    ['beck_view_gui.py'],  # your stub that imports main
     pathex=[str(project_dir)],
     binaries=cython_so_files,
     datas=[],
