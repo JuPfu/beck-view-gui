@@ -3,6 +3,7 @@ import os
 import platform
 import signal
 import subprocess
+import sys
 import time
 import tkinter
 from asyncio import Task
@@ -24,7 +25,7 @@ class FrameOutputDirectory(ttk.LabelFrame):
         path = FrameOutputDirectory.askdirectory(title="Ablageverzeichnis für digitalisierte Bilder",
                                                  initialdir=".",
                                                  mustexist=False)
-        return r'{}'.format(path)
+        return r'{}'.format(path) if path else r'{}'.format(Path.cwd())
 
     def __init__(self, master):
         super().__init__(master)
@@ -87,6 +88,9 @@ class Preferences(ttk.LabelFrame):
 
         self.configure(borderwidth=3, text="Einstellungen", relief=SOLID)
 
+        # increase font size for Listbox of Combobox
+        self.master.option_add("*TCombobox*Listbox*Font", beck_view_font)
+
         self.logo = ttk.PhotoImage(file="beck-view-logo.png")
         self.logo_label = ttk.Label(self, image=self.logo)
         self.logo_label.grid(row=0, column=0, rowspan=3, padx=(10, 0), pady=(0, 0), sticky="ew")
@@ -113,10 +117,6 @@ class Preferences(ttk.LabelFrame):
             "2592 x 1944",
             "3840 x 2160",
         ]
-
-        # increase font size for Listbox of Combobox
-        list_font = ttk.font.Font(family="Helvetica", size=14)
-        self.master.option_add("*TCombobox*Listbox*Font", list_font)
 
         self.film_resolution = ttk.Combobox(self.panel,
                                             font=beck_view_font,
@@ -161,9 +161,6 @@ class Preferences(ttk.LabelFrame):
             "43600 (180-m-Kassette)",
             "60000 (250-m-Kassette)"
         ]
-        # increase font size for Listbox of Combobox
-        list_font = ttk.font.Font(family="Helvetica", size=14)
-        self.master.option_add("*TCombobox*Listbox*Font", list_font)
 
         self.frame_counter = ttk.Combobox(self.panel,
                                           font=beck_view_font,
@@ -174,6 +171,27 @@ class Preferences(ttk.LabelFrame):
         self.frame_counter.current(3)
         ToolTip(self.frame_counter,
                 text="Notbremse - beendet die Digitalisierung spätestens bei Erreichen der ausgewählten Anzahl Bilder.",
+                bootstyle="INFO, INVERSE")
+
+        s = ttk.Style()
+        s.configure('beck-view-gui.TCheckbutton', font=beck_view_font)
+        s.map('beck-view-gui.TCheckbutton',
+              font=[('focus', ('Helvetica', 14, 'italic'))],
+              background=[('focus', 'white')],
+              )
+
+        self.exposure_bracketing = tkinter.BooleanVar()
+        self.exposure_bracketing.set(False)
+
+        self.exposure_bracketing_checkbutton = ttk.Checkbutton(self.panel, text="Belichtungsreihe aktivieren",
+                                                               onvalue=True, offvalue=False,
+                                                               variable=self.exposure_bracketing,
+                                                               padding="5  10",
+                                                               style='beck-view-gui.TCheckbutton'
+                                                               )
+        self.exposure_bracketing_checkbutton.grid(row=0, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
+        ToolTip(self.exposure_bracketing_checkbutton,
+                text="Belichtungsreihe aktivieren (Exposure Bracketing)",
                 bootstyle="INFO, INVERSE")
 
         if os.name == 'nt':
@@ -317,8 +335,12 @@ class GroupLayout(ttk.Frame):
                 f"--chunk-size={self.technical_attributes.batch.get()}",
                 "--gui"
             ]
+
             if self.preferences.monitor.get():
                 command.append("--show-monitor")
+
+            if self.preferences.exposure_bracketing.get():
+                command.append("--bracketing")
 
             if os.name == 'nt' and self.preferences.display_menu.get():
                 command.append("--show-menu")
@@ -400,7 +422,11 @@ class Application(ttk.Window):
         self.title("Beck View Digitalisierer")
         self.option_add("*tearOff", False)
 
-        self.iconbitmap("beck-view-gui.ico")
+        if sys.platform.startswith("win"):
+            self.iconbitmap("beck-view-gui.ico")
+        else:
+            logo = tkinter.PhotoImage(file="beck-view-logo.png")
+            self.iconphoto(True, logo)
 
         self.menu = MainMenu(self)
         self.config(menu=self.menu)

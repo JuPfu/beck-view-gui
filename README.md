@@ -41,11 +41,29 @@ Beck-View-GUI started without FT232H Chip attached
     ```sh
     pip install -r requirements.txt
     ```
+4. **Optionally Install a standalone application:**
 
+    Windows
+    ```sh
+    install.bat
+    ```
+   
+    MacOS
+    ```sh
+    ./install.sh
+    ```
+   
 ## Usage
 
 1. **Start the Application**:
+
+    Windows
    - Run `python beck_view_gui.py` to launch the GUI.
+   - In case you built a standalone application run `beck-view-gui.exe` 
+   
+    MacOS
+   - Run `python beck_view_gui.py` to launch the GUI.
+   - In case you built a standalone application run `./beck-view-gui` 
 
 2. **Configure Settings**:
    - Select the camera device number.
