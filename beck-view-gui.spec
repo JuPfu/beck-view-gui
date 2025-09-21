@@ -10,11 +10,15 @@ from PyInstaller.utils.hooks import collect_dynamic_libs
 project_dir = Path.cwd()
 dist_dir = Path("./dist")
 
+object_files = "*.pyd" if os.name == "nt" else "*.so"
+
 # Collect all .so files from the dist/ directory
 cython_so_files = [
-    (str(f), '.') for f in dist_dir.glob("*.so")
+    (str(f), '.') for f in dist_dir.glob(object_files)
 ]
-print(f"Found following *.so files {cython_so_files}")
+print(f"Found following {object_files} files {cython_so_files}")
+
+hidden_imports = "PIL._tkinter_finder" if os.name == "posix" else ""
 
 # Optional: Include compiled shared libraries from some packages
 # e.g. numpy, if needed
@@ -25,14 +29,15 @@ a = Analysis(
     pathex=[str(project_dir)],
     binaries=cython_so_files,
     datas=[],
-    hiddenimports=[],
+    hiddenimports=[hidden_imports],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=None,
-    noarchive=False
+    noarchive=False,
+    icons='beck-view-gui.ico'
 )
 
 pyz = PYZ(a.pure, a.zipped_data)

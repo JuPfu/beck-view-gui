@@ -3,6 +3,7 @@ import os
 import platform
 import signal
 import subprocess
+import sys
 import time
 import tkinter
 from asyncio import Task
@@ -24,7 +25,7 @@ class FrameOutputDirectory(ttk.LabelFrame):
         path = FrameOutputDirectory.askdirectory(title="Ablageverzeichnis für digitalisierte Bilder",
                                                  initialdir=".",
                                                  mustexist=False)
-        return r'{}'.format(path)
+        return r'{}'.format(path) if path else r'{}'.format(Path.cwd())
 
     def __init__(self, master):
         super().__init__(master)
@@ -421,7 +422,11 @@ class Application(ttk.Window):
         self.title("Beck View Digitalisierer")
         self.option_add("*tearOff", False)
 
-        self.iconbitmap("beck-view-gui.ico")
+        if sys.platform.startswith("win"):
+            self.iconbitmap("beck-view-gui.ico")
+        else:
+            logo = tkinter.PhotoImage(file="beck-view-logo.png")
+            self.iconphoto(True, logo)
 
         self.menu = MainMenu(self)
         self.config(menu=self.menu)
