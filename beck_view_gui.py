@@ -23,9 +23,9 @@ class FrameOutputDirectory(ttk.LabelFrame):
     @staticmethod
     def show_directory_dialog() -> str:
         path = FrameOutputDirectory.askdirectory(title="Ablageverzeichnis für digitalisierte Bilder",
-                                                 initialdir=".",
+                                                 initialdir=str(Path('~').expanduser()),
                                                  mustexist=False)
-        return r'{}'.format(path) if path else r'{}'.format(Path.cwd())
+        return r'{}'.format(path) if path else r'{}'.format(".")
 
     def __init__(self, master):
         super().__init__(master)
@@ -34,7 +34,7 @@ class FrameOutputDirectory(ttk.LabelFrame):
         self.directory_label = ttk.Label(self, text="Ausgabeverzeichnis", font=beck_view_font)
         self.directory_label.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
         self.directory_path = ttk.Entry(self, font=beck_view_font, takefocus=0)
-        self.directory_path.insert(0, os.getcwd())
+        self.directory_path.insert(0, str(Path('~').expanduser()))
         self.directory_path.configure(state=ttk.READONLY)
         self.directory_path.grid(row=0, column=1, pady=(10, 10), sticky="ew")
 
