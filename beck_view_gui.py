@@ -8,6 +8,7 @@ import time
 import tkinter
 from asyncio import Task
 from pathlib import Path
+from re import match
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
@@ -22,8 +23,9 @@ class FrameOutputDirectory(ttk.Labelframe):
 
     @staticmethod
     def show_directory_dialog() -> str:
+        p = Path('~', 'Filme').expanduser()
         path = FrameOutputDirectory.askdirectory(title="Ablageverzeichnis für digitalisierte Bilder",
-                                                 initialdir=str(Path('~').expanduser()),
+                                                 initialdir=str(p),
                                                  mustexist=False)
         return r'{}'.format(path) if path else r'{}'.format(".")
 
@@ -34,7 +36,7 @@ class FrameOutputDirectory(ttk.Labelframe):
         self.directory_label = ttk.Label(self, text="Ausgabeverzeichnis", font=beck_view_font)
         self.directory_label.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
         self.directory_path = ttk.Entry(self, font=beck_view_font, takefocus=0)
-        self.directory_path.insert(0, str(Path('~').expanduser()))
+        self.directory_path.insert(0, str(Path('~', 'Filme').expanduser()))
         self.directory_path.configure(state="readonly")
         self.directory_path.grid(row=0, column=1, pady=(10, 10), sticky="ew")
 
