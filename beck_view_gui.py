@@ -11,13 +11,13 @@ from pathlib import Path
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from ttkbootstrap.scrolled import ScrolledText
-from ttkbootstrap.tooltip import ToolTip
+from ttkbootstrap.widgets.scrolled import ScrolledText
+from ttkbootstrap.widgets.tooltip import ToolTip
 
 beck_view_font = ("Helvetica", 14)
 
 
-class FrameOutputDirectory(ttk.LabelFrame):
+class FrameOutputDirectory(ttk.Labelframe):
     from tkinter.filedialog import askdirectory
 
     @staticmethod
@@ -35,7 +35,7 @@ class FrameOutputDirectory(ttk.LabelFrame):
         self.directory_label.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
         self.directory_path = ttk.Entry(self, font=beck_view_font, takefocus=0)
         self.directory_path.insert(0, str(Path('~').expanduser()))
-        self.directory_path.configure(state=ttk.READONLY)
+        self.directory_path.configure(state="readonly")
         self.directory_path.grid(row=0, column=1, pady=(10, 10), sticky="ew")
 
         s = ttk.Style()
@@ -52,15 +52,15 @@ class FrameOutputDirectory(ttk.LabelFrame):
 
     def directory_button_callback(self):
         path = FrameOutputDirectory.show_directory_dialog()
-        self.directory_path.configure(state=ttk.NORMAL)
+        self.directory_path.configure(state="normal")
         text = self.directory_path.get()
         if len(path) > 0:
             self.directory_path.delete(0, len(text))
             self.directory_path.insert(index=0, string=path)
-        self.directory_path.configure(state=ttk.READONLY)
+        self.directory_path.configure(state="readonly")
 
 
-class TechnicalAttributes(ttk.LabelFrame):
+class TechnicalAttributes(ttk.Labelframe):
     def __init__(self, master):
         super().__init__(master)
 
@@ -70,9 +70,9 @@ class TechnicalAttributes(ttk.LabelFrame):
         self.batch_label = ttk.Label(self, font=beck_view_font,
                                      text="Anzahl Bilder, die jedem Prozess übergeben werden")
         self.batch_label.grid(row=row, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
-        self.batch = ttk.Spinbox(self, font=beck_view_font, from_=1, to=100, state=ttk.READONLY)
+        self.batch = ttk.Spinbox(self, font=beck_view_font, from_=1, to=100, state="readonly")
         self.batch.grid(row=row, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.batch.set(10)
+        self.batch.set(5)
         ToolTip(self.batch,
                 text="Anzahl Bilder die in einem `Paket`parallel verarbeitet werden. Beeinflusst die "
                      "Verarbeitungs-geschwindigkeit.\nWertebereich 1 bis 99.",
@@ -82,7 +82,7 @@ class TechnicalAttributes(ttk.LabelFrame):
         self.panel.grid(row=row, column=2, rowspan=2, padx=(10, 10), pady=(10, 10), sticky="ewns")
 
 
-class Preferences(ttk.LabelFrame):
+class Preferences(ttk.Labelframe):
     def __init__(self, master):
         super().__init__(master)
 
@@ -100,7 +100,7 @@ class Preferences(ttk.LabelFrame):
 
         self.device_label = ttk.Label(self.panel, font=beck_view_font, text="Gerätenummer der Kamera")
         self.device_label.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.device = ttk.Spinbox(self.panel, font=beck_view_font, from_=0, to=9, state=ttk.READONLY)
+        self.device = ttk.Spinbox(self.panel, font=beck_view_font, from_=0, to=9, wrap=True, state="readonly")
         self.device.grid(row=0, column=1, padx=(0, 10), pady=(10, 10), sticky="ew")
         self.device.set(0)
         ToolTip(self.device,
@@ -121,32 +121,11 @@ class Preferences(ttk.LabelFrame):
         self.film_resolution = ttk.Combobox(self.panel,
                                             font=beck_view_font,
                                             values=self.film_resolution_values,
-                                            state=ttk.READONLY)
+                                            state="readonly")
         self.film_resolution.grid(row=1, column=1, padx=(0, 10), pady=(10, 10), sticky="ew")
         self.film_resolution.current(1)
         ToolTip(self.film_resolution,
                 text="Auflösung in horizontaler und vertikaler Richtung.",
-                bootstyle="INFO, INVERSE")
-
-        s = ttk.Style()
-        s.configure('beck-view-gui.TCheckbutton', font=beck_view_font)
-        s.map('beck-view-gui.TCheckbutton',
-              font=[('focus', ('Helvetica', 14, 'italic'))],
-              background=[('focus', 'white')],
-              )
-
-        self.monitor = tkinter.BooleanVar()
-        self.monitor.set(False)
-
-        self.monitor_checkbutton = ttk.Checkbutton(self.panel, text="Monitor-Fenster anzeigen",
-                                                   onvalue=True, offvalue=False,
-                                                   variable=self.monitor,
-                                                   padding="5  10",
-                                                   style='beck-view-gui.TCheckbutton'
-                                                   )
-        self.monitor_checkbutton.grid(row=1, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
-        ToolTip(self.monitor_checkbutton,
-                text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.",
                 bootstyle="INFO, INVERSE")
 
         self.frame_counter_label = ttk.Label(self.panel,
@@ -165,7 +144,7 @@ class Preferences(ttk.LabelFrame):
         self.frame_counter = ttk.Combobox(self.panel,
                                           font=beck_view_font,
                                           values=self.frame_counter_values,
-                                          state=ttk.READONLY)
+                                          state="readonly")
 
         self.frame_counter.grid(row=2, column=1, padx=(0, 10), pady=(5, 5), sticky="ew")
         self.frame_counter.current(3)
@@ -176,7 +155,7 @@ class Preferences(ttk.LabelFrame):
         s = ttk.Style()
         s.configure('beck-view-gui.TCheckbutton', font=beck_view_font)
         s.map('beck-view-gui.TCheckbutton',
-              font=[('focus', ('Helvetica', 14, 'italic'))],
+              # font=[('focus', ('Helvetica', 14, 'italic'))],
               background=[('focus', 'white')],
               )
 
@@ -192,6 +171,20 @@ class Preferences(ttk.LabelFrame):
         self.exposure_bracketing_checkbutton.grid(row=0, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
         ToolTip(self.exposure_bracketing_checkbutton,
                 text="Belichtungsreihe aktivieren (Exposure Bracketing)",
+                bootstyle="INFO, INVERSE")
+
+        self.monitor = tkinter.BooleanVar()
+        self.monitor.set(False)
+
+        self.monitor_checkbutton = ttk.Checkbutton(self.panel, text="Monitor-Fenster anzeigen",
+                                                   onvalue=True, offvalue=False,
+                                                   variable=self.monitor,
+                                                   padding="5  10",
+                                                   style='beck-view-gui.TCheckbutton'
+                                                   )
+        self.monitor_checkbutton.grid(row=1, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
+        ToolTip(self.monitor_checkbutton,
+                text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.",
                 bootstyle="INFO, INVERSE")
 
         if os.name == 'nt':
@@ -210,7 +203,7 @@ class Preferences(ttk.LabelFrame):
                     bootstyle="INFO, INVERSE")
 
 
-class SubprocessOutput(ttk.LabelFrame):
+class SubprocessOutput(ttk.Labelframe):
     def __init__(self, master):
         super().__init__(master)
 
