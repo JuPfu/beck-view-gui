@@ -27,7 +27,7 @@ class FrameOutputDirectory(ttk.Labelframe):
         path = FrameOutputDirectory.askdirectory(title="Ablageverzeichnis für digitalisierte Bilder",
                                                  initialdir=str(p),
                                                  mustexist=False)
-        return r'{}'.format(path) if path else r'{}'.format(".")
+        return r'{}'.format(path) if path else r'{}'.format(str(p))
 
     def __init__(self, master):
         super().__init__(master)
