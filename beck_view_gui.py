@@ -8,7 +8,6 @@ import time
 import tkinter
 from asyncio import Task
 from pathlib import Path
-from re import match
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
