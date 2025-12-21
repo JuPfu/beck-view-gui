@@ -1,163 +1,198 @@
 # Beck View GUI
 
-The Beck-View GUI App supplies a user-friendly interface to configure the various settings for the [Beck-View-Digitalize](https://github.com/JuPfu/beck-view-digitalize)
-Application, such as output directory, camera device number, and other technical attributes. It is built
-using `ttkbootstrap` for a modern and consistent look and feel across different operating systems.
+**Beck View GUI** is a cross-platform graphical frontend for the
+[`beck-view-digitize`](https://github.com/JuPfu/beck-view-digitize) application.
+
+It provides a user-friendly interface to configure and control the digitisation
+process of film material and launches the underlying backend as an external
+process while displaying its live output inside the GUI.
+
+The application is written in Python and uses **ttkbootstrap** to provide a
+modern and consistent look and feel on Windows, macOS, and Linux.
 
 ![Beck View GUI](./assets/img/beck-view-gui.png)
-Beck-View-GUI started without FT232H Chip attached
 
-## Features
+*beck-view-gui during an active digitisation run.*
 
-- **Device Configuration**: Select the camera device and set the maximum number of frames to digitize.
-- **Output Directory**: Choose the directory where the digitized images will be saved.
-- **Performance Tuning**: Set the chunk size for parallel processing of images.
-- **Real-time Monitoring**: Optionally display a preview window with the digitized images.
-- **Subprocess Management**: Start and stop the digitization process with proper handling of subprocess termination for cleanup.
+---
 
-## Requirements
+## 🚀 Features
 
-- Python 3.8 or later
-- Dependencies listed in `requirements.txt`
+* Graphical user interface for the `beck-view-digitize` backend
+* GUI controls for all relevant digitisation parameters
+* Configuration of:
 
-## Installation
+  * Input / capture source settings
+  * Output directory and base name
+  * Image resolution
+  * Exposure and capture-related parameters
+  * **Exposure bracketing** ("Belichtungsreihe aktivieren")
 
-1. **Clone the repository:**
+    * passes `--bracketing` to the backend
+    * captures three frames per analogue image with different exposure times
+  * Optional image transformations
+* Performance tuning by setting the chunk size of frames 
+* Automatic construction of a valid backend command line
+* Launches the backend as a **subprocess**
+* Displays **real-time stdout / stderr output** in the GUI
+* **Stop button** to terminate the running process cleanly
 
-    ```sh
-    git clone https://github.com/JuPfu/beck-view-gui.git
-    cd beck-view-gui
-    ```
+---
 
-2. **Set up a virtual environment:**
+## 🧰 Requirements
 
-    ```sh
-    python -m venv venv
-    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-    ```
+* Python **3.12 or newer**
+* A working build of
+  [`beck-view-digitize`](https://github.com/JuPfu/beck-view-digitize)
+* All Python dependencies are installed automatically by the installer scripts
 
-3. **Install the dependencies:**
+---
 
-    ```sh
-    pip install -r requirements.txt
-    ```
-4. **Optionally Install a standalone application:**
+## 📦 Installation
 
-    Windows
-    ```sh
-    install.bat
-    ```
-   
-    MacOS
-    ```sh
-    ./install.sh
-    ```
-   
-## Usage
+Installation is performed via the provided platform-specific installer scripts.
 
-1. **Start the Application**:
+The scripts will:
 
-    Windows
-   - Run `python beck_view_gui.py` to launch the GUI.
-   - In case you built a standalone application run `beck-view-gui.exe` 
-   
-    MacOS
-   - Run `python beck_view_gui.py` to launch the GUI.
-   - In case you built a standalone application run `./beck-view-gui` 
+* create a local Python virtual environment
+* install all required Python dependencies
+* build the GUI using **Cython**
+* create a platform-specific executable using **PyInstaller**
 
-2. **Configure Settings**:
-   - Select the camera device number.
-   - Choose the maximum number of frames to digitize.
-   - Choose the resolution which is used to digitise images.
-   - Set the output directory for digitized images.
-   - Adjust the chunk size for parallel image processing.
-   - Enable the monitor window if needed.
+### 🔹 Linux / macOS
 
-3. **Start Digitization**:
-   - Click the "Start Digitization" button to begin the process.
-   - The output from the subprocess will be displayed in real-time in the output text area.
+```bash
+git clone https://github.com/JuPfu/beck-view-gui.git
+cd beck-view-gui
+./install.sh
+```
 
-4. **Stop Digitization**:
-   - Click the "Stop Digitization" button to terminate the subprocess. The subprocess will handle cleanup before exiting.
+If required, make the script executable first:
 
-## Creating an Executable with Nuitka
+```bash
+chmod +x install.sh
+```
 
-To distribute Beck View GUI as a standalone executable, you can use Nuitka, a Python-to-C++ compiler. Below are the steps to set up and create the executable.
+---
 
-### Installing Nuitka
+### 🔹 Windows
 
-1. **Install Nuitka:**
+```bat
+git clone https://github.com/JuPfu/beck-view-gui.git
+cd beck-view-gui
+install.bat
+```
 
-    ```sh
-    pip install nuitka
-    ```
+---
 
-2. **Install required C/C++ compilers:**
+## ▶️ Usage
 
-    Follow the `Nuitka` guidelines for the installation of required C/C++ compilers.
+After installation, the application can be run either via the generated
+executable or directly via Python.
 
-### Creating the Executable
+### Run the executable
 
-1. **Compile the Python script:**
+#### Linux / macOS
 
-    Navigate to the project directory where `beck-view_gui.py` is located and run:
+```bash
+./beck-view-gui
+```
 
-   -  Windows
-   ```sh
-   python -m nuitka  --windows-console-mode=disable --windows-icon-from-ico=beck-view-digitize.png -o "beck-view-gui" beck_view_gui.py
+#### Windows
+
+```bat
+beck-view-gui.exe
+```
+
+---
+
+### Run via Python (development mode)
+
+```bash
+python beck-view-gui.py
+```
+
+---
+
+## 🖥️ How It Works
+
+1. The GUI collects all selected parameters from the user interface.
+2. If **Exposure Bracketing** is enabled, the option `--bracketing` is passed to the backend.
+3. These parameters are translated into a valid backend command line.
+4. The command is executed as a subprocess.
+5. Console output is streamed live into the GUI log window.
+6. The running process can be terminated at any time using the **Stop** button.
+
+When exposure bracketing is active, the backend captures **three frames per analogue picture**
+using different exposure times.
+
+The GUI itself does **not** perform digitisation; all hardware interaction and
+image processing is handled by the backend application.
+
+---
+
+## 🧯 Troubleshooting
+
+**The executable does not start**
+
+* Ensure the installation script completed without errors
+* Verify that Python 3.12+ is available on your system
+* On Linux/macOS, check executable permissions:
+
+  ```bash
+  chmod +x beck-view-gui
+  ```
+
+**Backend cannot be found or fails to start**
+
+* Make sure `beck-view-digitize` is built and accessible
+* Try running the backend manually from a terminal to confirm it works
+
+**GUI starts but no output is shown**
+
+* Verify that the selected output directory is writable
+* Check backend log output for error messages
+
+If problems persist, please open a GitHub issue and include:
+
+* your operating system
+* Python version
+* console output from the installer script
+
+---
+
+## 👥 Contributing
+
+Contributions are welcome.
+
+1. Fork the repository
+2. Create a feature branch
+
+   ```bash
+   git checkout -b my-feature
    ```
-   -  MacOS
+3. Implement your changes
+4. Commit with a clear message
 
-   ```sh
-   python3 -m nuitka  --product-name="beck-view-gui" --standalone --macos-app-icon=beck-view-digitize.png --macos-app-mode=gui --onefile --enable-plugin=tk-inter --tcl-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.1/lib --tk-library-dir=/opt/homebrew/Cellar/tcl-tk/9.0.1/lib --static-libpython=no -o "beck-view-gui" beck_view_gui.py
+   ```bash
+   git commit -am "Add feature X"
    ```
-   With `Nuitka` version 2.7.11 the build process emits an error message on macOS
+5. Push the branch
 
-    >  FATAL: Error, call to '/usr/bin/codesign' failed: ['/usr/bin/codesign', '-s', '-', '--force', '--deep', '--preserve-metadata=entitlements', 'beck-view-gui'] -> b'beck-view-gui: bundle format unrecognized, invalid, or unsuitable\nIn subcomponent: /Users/jp/PycharmProjects/beck-view-gui/beck_view_gui.onefile-build'.
+   ```bash
+   git push origin my-feature
+   ```
+6. Open a Pull Request
 
-   Nevetheless a `beck-view-gui` file had been created. After applying `chmod +x` on this file the application seems to work.
+---
 
+## 📄 License
 
-2. **Running the Executable:**
+This project is licensed under the **MIT License**.
+See the [LICENSE](LICENSE) file for details.
 
-    After the compilation is complete, `Nuitka` will give you a notice where to find the executable. You can run it directly:
+---
 
-    - On Windows:
+## 📬 Contact
 
-        ```sh
-        beck-view-gui.exe
-        ```
-      or
-         ```bat
-         python beck_view_gui.py
-         ```
-       - On Unix or MacOS:
-
-        ```sh
-        beck-view-gui
-        ```
-      or
-         ```sh
-         python beck_view_gui.py
-         ```
-      
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature-branch`).
-3. Commit your changes (`git commit -am 'Add new feature'`).
-4. Push to the branch (`git push origin feature-branch`).
-5. Create a new Pull Request.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
-
-## Contact
-
-For questions or suggestions, please open an issue on GitHub.
-
-------
-This README provides an overview of the project, installation instructions, usage guidelines, and steps to create an executable with Nuitka. Feel free to adjust it according to any additional details specific to your project.
+For bug reports, feature requests, or questions, please open an issue on GitHub.
