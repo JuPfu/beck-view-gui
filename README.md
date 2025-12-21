@@ -30,7 +30,6 @@ modern and consistent look and feel on Windows, macOS, and Linux.
 
     * passes `--bracketing` to the backend
     * captures three frames per analogue image with different exposure times
-  * Optional image transformations
 * Performance tuning by setting the chunk size of frames 
 * Automatic construction of a valid backend command line
 * Launches the backend as a **subprocess**
