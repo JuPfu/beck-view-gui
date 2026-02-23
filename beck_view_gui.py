@@ -188,7 +188,7 @@ class Preferences(ttk.Labelframe):
         #        text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.",
         #        bootstyle="INFO, INVERSE")
 
-        if True or os.name == 'nt':
+        if os.name == 'nt':
             self.display_menu = tkinter.BooleanVar()
             self.display_menu.set(True)
 
