@@ -174,21 +174,21 @@ class Preferences(ttk.Labelframe):
                 text="Belichtungsreihe aktivieren (Exposure Bracketing)",
                 bootstyle="INFO, INVERSE")
 
-        self.monitor = tkinter.BooleanVar()
-        self.monitor.set(False)
+        # self.monitor = tkinter.BooleanVar()
+        # self.monitor.set(False)
 
-        self.monitor_checkbutton = ttk.Checkbutton(self.panel, text="Monitor-Fenster anzeigen",
-                                                   onvalue=True, offvalue=False,
-                                                   variable=self.monitor,
-                                                   padding="5  10",
-                                                   style='beck-view-gui.TCheckbutton'
-                                                   )
-        self.monitor_checkbutton.grid(row=1, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
-        ToolTip(self.monitor_checkbutton,
-                text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.",
-                bootstyle="INFO, INVERSE")
+        # self.monitor_checkbutton = ttk.Checkbutton(self.panel, text="Monitor-Fenster anzeigen",
+        #                                           onvalue=True, offvalue=False,
+        #                                           variable=self.monitor,
+        #                                           padding="5  10",
+        #                                           style='beck-view-gui.TCheckbutton'
+        #                                           )
+        # self.monitor_checkbutton.grid(row=1, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
+        # ToolTip(self.monitor_checkbutton,
+        #        text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.",
+        #        bootstyle="INFO, INVERSE")
 
-        if os.name == 'nt':
+        if True or os.name == 'nt':
             self.display_menu = tkinter.BooleanVar()
             self.display_menu.set(True)
 
