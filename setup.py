@@ -6,7 +6,7 @@ from glob import glob
 from os.path import splitext, basename
 
 compile_args = ["-O3"] if platform.system() != "Windows" else ["/O2"]
-pyx_files = glob("*.pyx")
+pyx_files = glob("*.py")
 
 extensions = [
     Extension(

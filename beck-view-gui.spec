@@ -13,24 +13,32 @@ dist_dir = Path("./dist")
 
 object_files = "*.pyd" if os.name == "nt" else "*.so"
 
-# Collect all .so files from the dist/ directory
+# Collect all compiled extensions from the dist/ directory
 cython_so_files = [
     (str(f), '.') for f in dist_dir.glob(object_files)
 ]
 print(f"Found following {object_files} files {cython_so_files}")
 
-hidden_imports = "PIL._tkinter_finder" if os.name == "posix" else ""
+# Platform-specific hidden imports
+hidden_imports = (
+    [
+        'PIL._tkinter_finder',
+        'PIL._imagingtk',
+    ]
+    if os.name == "posix"
+    else []
+)
 
 # Optional: Include compiled shared libraries from some packages
 # e.g. numpy, if needed
 # numpy_binaries = collect_dynamic_libs("numpy")
 
 a = Analysis(
-    ['beck_view_gui.py'],  # your stub that imports main
+    ['beck_view_gui.py'],
     pathex=[str(project_dir)],
     binaries=cython_so_files,
     datas=[],
- #   hiddenimports=[hidden_imports],
+    hiddenimports=hidden_imports,
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
@@ -55,14 +63,13 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,  # change to False if you want a GUI app
+    console=False,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
     icon='beck-view-gui.ico'
 )
-
 
 coll = COLLECT(
     exe,
