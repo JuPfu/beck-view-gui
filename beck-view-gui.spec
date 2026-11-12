@@ -16,7 +16,7 @@ object_files = "*.pyd" if os.name == "nt" else "*.so"
 # Collect all compiled extensions from the dist/ directory
 cython_so_files = [
     (str(f), '.') for f in dist_dir.glob(object_files)
-]
+    ]
 print(f"Found following {object_files} files {cython_so_files}")
 
 # Platform-specific hidden imports
@@ -24,10 +24,10 @@ hidden_imports = (
     [
         'PIL._tkinter_finder',
         'PIL._imagingtk',
-    ]
+        ]
     if os.name == "posix"
     else []
-)
+        )
 
 # Optional: Include compiled shared libraries from some packages
 # e.g. numpy, if needed

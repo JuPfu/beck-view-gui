@@ -1,450 +1,539 @@
-import asyncio
+"""Beck-View GUI - Oberfläche zum Starten und Stoppen von Beck-View-Digitize.
+
+tkinter/ttk mit optionalem Theme aus dem Paket ttkthemes (pip install ttkthemes).
+Der Subprozess wird in einem Hintergrund-Thread gelesen, die Ausgabe gelangt
+über eine Queue in die GUI.
+"""
+
 import os
 import platform
+import queue
 import signal
 import subprocess
 import sys
-import time
-import tkinter
-from asyncio import Task
+import threading
+import tkinter as tk
 from pathlib import Path
+from tkinter import filedialog, messagebox, ttk
+from tkinter.scrolledtext import ScrolledText
 
-import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
-from ttkbootstrap.widgets.scrolled import ScrolledText
-from ttkbootstrap.widgets.tooltip import ToolTip
+try:
+    from ttkthemes import ThemedTk  # pip install ttkthemes
+except ImportError:  # GUI läuft auch ohne das Paket (dann mit Standard-Theme)
+    ThemedTk = None
 
-beck_view_font = ("Helvetica", 14)
+# Theme aus ttkthemes, z. B. "arc", "equilux" (dunkel), "breeze", "adapta",
+# "yaru", "plastik", "radiance", "clearlooks", "black"
+THEME_NAME = "blue"
+
+APP_DIR = Path(__file__).resolve().parent
+BECK_VIEW_FONT = ("Helvetica", 14)
+IS_WINDOWS = platform.system() == "Windows"
+
+DIGITIZE_PATH = Path.home().joinpath(
+    "PycharmProjects",
+    "beck-view-digitalize",
+    "digitize.cmd" if IS_WINDOWS else "beck-view-digitize",
+)
+DEFAULT_OUTPUT_DIR = Path("~", "Filme").expanduser()
+
+
+def find_asset(name: str) -> Path | None:
+    """Sucht eine Ressource (Logo, Icon) neben dem Skript und im aktuellen Arbeitsverzeichnis."""
+    for folder in (APP_DIR, Path.cwd()):
+        candidate = folder / name
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+BaseWindow = ThemedTk if ThemedTk is not None else tk.Tk
+
+
+def themed_text_colors() -> dict:
+    """Farben für klassische tk-Widgets (Text), damit sie zum aktiven ttk-Theme passen."""
+    style = ttk.Style()
+    background = style.lookup("TEntry", "fieldbackground") or style.lookup("TFrame", "background") or "white"
+    foreground = style.lookup("TEntry", "foreground") or style.lookup("TLabel", "foreground") or "black"
+    return {"background": background, "foreground": foreground, "insertbackground": foreground}
+
+
+class ToolTip:
+    """Einfacher Tooltip für beliebige Widgets."""
+
+    def __init__(self, widget: tk.Widget, text: str):
+        self.widget = widget
+        self.text = text
+        self.tip: tk.Toplevel | None = None
+        widget.bind("<Enter>", self.show, add="+")
+        widget.bind("<Leave>", self.hide, add="+")
+        widget.bind("<ButtonPress>", self.hide, add="+")
+
+    def show(self, _event=None):
+        if self.tip:
+            return
+        x = self.widget.winfo_rootx() + 20
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        self.tip = tk.Toplevel(self.widget)
+        self.tip.wm_overrideredirect(True)
+        self.tip.wm_geometry(f"+{x}+{y}")
+        # Außen ein Rahmen (1 px Rand), innen ein Label mit Abstand zum Rand.
+        # Der Abstand wird in Millimetern angegeben und so von Tk passend zur
+        # Bildschirmauflösung umgerechnet (feste Pixelwerte wirken auf
+        # hochauflösenden Displays kaum sichtbar).
+        pad_x = round(self.widget.winfo_fpixels("4m"))
+        pad_y = round(self.widget.winfo_fpixels("2.5m"))
+        border = tk.Frame(self.tip, background="black", padx=1, pady=1)
+        border.pack()
+        tk.Label(border, text=self.text, justify="left", background="#ffffe0",
+                 foreground="black", font=("Helvetica", 11), wraplength=420,
+                 borderwidth=0).pack(padx=0, pady=0, ipadx=pad_x, ipady=pad_y)
+
+    def hide(self, _event=None):
+        if self.tip:
+            self.tip.destroy()
+            self.tip = None
 
 
 class FrameOutputDirectory(ttk.Labelframe):
-    from tkinter.filedialog import askdirectory
-
-    @staticmethod
-    def show_directory_dialog() -> str:
-        p = Path('~', 'Filme').expanduser()
-        path = FrameOutputDirectory.askdirectory(title="Ablageverzeichnis für digitalisierte Bilder",
-                                                 initialdir=str(p),
-                                                 mustexist=False)
-        return r'{}'.format(path) if path else r'{}'.format(str(p))
-
     def __init__(self, master):
-        super().__init__(master)
+        super().__init__(master, text="Zielordner für digitalisierte Bilder",
+                         borderwidth=3, relief=tk.SOLID)
 
-        self.configure(borderwidth=3, text="Zielordner für digitalisierte Bilder", relief=SOLID)
-        self.directory_label = ttk.Label(self, text="Ausgabeverzeichnis", font=beck_view_font)
-        self.directory_label.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.directory_path = ttk.Entry(self, font=beck_view_font, takefocus=0)
-        self.directory_path.insert(0, str(Path('~', 'Filme').expanduser()))
-        self.directory_path.configure(state="readonly")
-        self.directory_path.grid(row=0, column=1, pady=(10, 10), sticky="ew")
+        self.path_var = tk.StringVar(value=str(DEFAULT_OUTPUT_DIR))
 
-        s = ttk.Style()
-        s.configure('beck-view-gui.TButton', font=beck_view_font)
-        self.directory_button = ttk.Button(self,
-                                           text="Auswählen",
+        self.directory_label = ttk.Label(self, text="Ausgabeverzeichnis", font=BECK_VIEW_FONT)
+        self.directory_label.grid(row=0, column=0, padx=10, pady=10, sticky=tk.EW)
+
+        self.directory_path = ttk.Entry(self, font=BECK_VIEW_FONT, takefocus=False,
+                                        textvariable=self.path_var, state="readonly")
+        self.directory_path.grid(row=0, column=1, pady=10, sticky=tk.EW)
+
+        self.directory_button = ttk.Button(self, text="Auswählen",
                                            style="beck-view-gui.TButton",
                                            command=self.directory_button_callback)
-        self.directory_button.grid(row=0, column=2, padx=(10, 10))
+        self.directory_button.grid(row=0, column=2, padx=10)
         ToolTip(self.directory_button,
-                text="Öffnet den Dialog zur Auswahl des Zielordners in dem die digitalisierten Bilder abgelegt "
-                     "werden.",
-                bootstyle="INFO, INVERSE")
+                "Öffnet den Dialog zur Auswahl des Zielordners, in dem die "
+                "digitalisierten Bilder abgelegt werden.")
+
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(2, weight=0)
 
     def directory_button_callback(self):
-        path = FrameOutputDirectory.show_directory_dialog()
-        self.directory_path.configure(state="normal")
-        text = self.directory_path.get()
-        if len(path) > 0:
-            self.directory_path.delete(0, len(text))
-            self.directory_path.insert(index=0, string=path)
-        self.directory_path.configure(state="readonly")
+        initial = self.path_var.get()
+        if not Path(initial).is_dir():
+            initial = str(DEFAULT_OUTPUT_DIR if DEFAULT_OUTPUT_DIR.is_dir() else Path.home())
+        path = filedialog.askdirectory(title="Ablageverzeichnis für digitalisierte Bilder",
+                                       initialdir=initial, mustexist=False)
+        if path:  # Abbruch des Dialogs lässt den bisherigen Wert unverändert
+            self.path_var.set(str(Path(path)))
+
+    def get(self) -> str:
+        return self.path_var.get()
 
 
 class TechnicalAttributes(ttk.Labelframe):
     def __init__(self, master):
-        super().__init__(master)
+        super().__init__(master, text="Performance-Tuning", borderwidth=3, relief=tk.SOLID)
 
-        self.configure(borderwidth=3, text="Performance-Tuning", relief=SOLID)
-        row = 0
+        self.batch_var = tk.IntVar(value=5)
 
-        self.batch_label = ttk.Label(self, font=beck_view_font,
+        self.batch_label = ttk.Label(self, font=BECK_VIEW_FONT,
                                      text="Anzahl Bilder, die jedem Prozess übergeben werden")
-        self.batch_label.grid(row=row, column=0, padx=(10, 0), pady=(10, 10), sticky="ew")
-        self.batch = ttk.Spinbox(self, font=beck_view_font, from_=1, to=100, state="readonly")
-        self.batch.grid(row=row, column=1, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.batch.set(5)
-        ToolTip(self.batch,
-                text="Anzahl Bilder die in einem `Paket`parallel verarbeitet werden. Beeinflusst die "
-                     "Verarbeitungs-geschwindigkeit.\nWertebereich 1 bis 99.",
-                bootstyle="INFO, INVERSE")
+        self.batch_label.grid(row=0, column=0, padx=(10, 0), pady=10, sticky=tk.EW)
 
-        self.panel = ttk.Frame(self, borderwidth=0)
-        self.panel.grid(row=row, column=2, rowspan=2, padx=(10, 10), pady=(10, 10), sticky="ewns")
+        self.batch = ttk.Spinbox(self, font=BECK_VIEW_FONT, from_=1, to=99,
+                                 textvariable=self.batch_var, state="readonly")
+        self.batch.grid(row=0, column=1, padx=10, pady=10, sticky=tk.EW)
+        ToolTip(self.batch,
+                "Anzahl Bilder, die in einem `Paket` parallel verarbeitet werden. "
+                "Beeinflusst die Verarbeitungsgeschwindigkeit.\nWertebereich 1 bis 99.")
+
+        self.grid_columnconfigure(2, weight=1)
+
+    def get(self) -> str:
+        return str(self.batch_var.get())
 
 
 class Preferences(ttk.Labelframe):
+    FILM_RESOLUTIONS = [
+        "1600 x 1200",
+        "1920 x 1080",
+        "2048 x 1536",
+        "2592 x 1944",
+        "3840 x 2160",
+    ]
+    FRAME_COUNTS = [
+        "3600 (15-m-Kassette)",
+        "7200 (30-m-Kassette)",
+        "14400 (60-m-Kassette)",
+        "21800 (90-m-Kassette)",
+        "43600 (180-m-Kassette)",
+        "60000 (250-m-Kassette)",
+    ]
+
     def __init__(self, master):
-        super().__init__(master)
+        super().__init__(master, text="Einstellungen", borderwidth=3, relief=tk.SOLID)
 
-        self.configure(borderwidth=3, text="Einstellungen", relief=SOLID)
-
-        # increase font size for Listbox of Combobox
-        self.master.option_add("*TCombobox*Listbox*Font", beck_view_font)
-
-        self.logo = ttk.PhotoImage(file="beck-view-logo.png")
-        self.logo_label = ttk.Label(self, image=self.logo)
-        self.logo_label.grid(row=0, column=0, rowspan=3, padx=(10, 0), pady=(0, 0), sticky="ew")
+        # Logo oben links (fehlt die Datei, läuft die GUI trotzdem)
+        self.logo = None
+        logo_file = find_asset("beck-view-logo.png")
+        if logo_file:
+            self.logo = tk.PhotoImage(file=str(logo_file))  # Referenz halten, sonst wird das Bild gelöscht
+            self.logo_label = ttk.Label(self, image=self.logo)
+            self.logo_label.grid(row=0, column=0, rowspan=3, padx=(10, 0), pady=(0, 0), sticky=tk.EW)
+        else:
+            print("Logo 'beck-view-logo.png' nicht gefunden "
+                  f"(gesucht in {APP_DIR} und {Path.cwd()})", file=sys.stderr)
 
         self.panel = ttk.Frame(self, borderwidth=3)
-        self.panel.grid(row=0, column=1, rowspan=2, columnspan=4, padx=(0, 0), pady=(0, 0), sticky="ewns")
+        self.panel.grid(row=0, column=1, rowspan=2, columnspan=4, sticky=tk.NSEW)
 
-        self.device_label = ttk.Label(self.panel, font=beck_view_font, text="Gerätenummer der Kamera")
-        self.device_label.grid(row=0, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.device = ttk.Spinbox(self.panel, font=beck_view_font, from_=0, to=9, wrap=True, state="readonly")
-        self.device.grid(row=0, column=1, padx=(0, 10), pady=(10, 10), sticky="ew")
-        self.device.set(0)
-        ToolTip(self.device,
-                text="Vom System vergebene Geräte-Id.\nZulässiger Wertebereich ist 0 bis 9.",
-                bootstyle="INFO, INVERSE")
+        # Gerätenummer
+        self.device_var = tk.IntVar(value=0)
+        ttk.Label(self.panel, font=BECK_VIEW_FONT, text="Gerätenummer der Kamera").grid(
+            row=0, column=0, padx=10, pady=10, sticky=tk.EW)
+        self.device = ttk.Spinbox(self.panel, font=BECK_VIEW_FONT, from_=0, to=9, wrap=True,
+                                  textvariable=self.device_var, state="readonly")
+        self.device.grid(row=0, column=1, padx=(0, 10), pady=10, sticky=tk.EW)
+        ToolTip(self.device, "Vom System vergebene Geräte-Id.\nZulässiger Wertebereich ist 0 bis 9.")
 
-        self.film_resolution_label = ttk.Label(self.panel, font=beck_view_font, text="Auflösung")
-        self.film_resolution_label.grid(row=1, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
-
-        self.film_resolution_values = [
-            "1600 x 1200",
-            "1920 x 1080",
-            "2048 x 1536",
-            "2592 x 1944",
-            "3840 x 2160",
-        ]
-
-        self.film_resolution = ttk.Combobox(self.panel,
-                                            font=beck_view_font,
-                                            values=self.film_resolution_values,
-                                            state="readonly")
-        self.film_resolution.grid(row=1, column=1, padx=(0, 10), pady=(10, 10), sticky="ew")
+        # Auflösung
+        ttk.Label(self.panel, font=BECK_VIEW_FONT, text="Auflösung").grid(
+            row=1, column=0, padx=10, pady=10, sticky=tk.EW)
+        self.film_resolution = ttk.Combobox(self.panel, font=BECK_VIEW_FONT,
+                                            values=self.FILM_RESOLUTIONS, state="readonly")
+        self.film_resolution.grid(row=1, column=1, padx=(0, 10), pady=10, sticky=tk.EW)
         self.film_resolution.current(1)
-        ToolTip(self.film_resolution,
-                text="Auflösung in horizontaler und vertikaler Richtung.",
-                bootstyle="INFO, INVERSE")
+        ToolTip(self.film_resolution, "Auflösung in horizontaler und vertikaler Richtung.")
 
-        self.frame_counter_label = ttk.Label(self.panel,
-                                             font=beck_view_font,
-                                             text="Maximale Anzahl Bilder")
-        self.frame_counter_label.grid(row=2, column=0, padx=(10, 10), pady=(10, 10), sticky="ew")
-        self.frame_counter_values = [
-            "3600 (15-m-Kassette)",
-            "7200 (30-m-Kassette)",
-            "14400 (60-m-Kassette)",
-            "21800 (90-m-Kassette)",
-            "43600 (180-m-Kassette)",
-            "60000 (250-m-Kassette)"
-        ]
-
-        self.frame_counter = ttk.Combobox(self.panel,
-                                          font=beck_view_font,
-                                          values=self.frame_counter_values,
-                                          state="readonly")
-
-        self.frame_counter.grid(row=2, column=1, padx=(0, 10), pady=(5, 5), sticky="ew")
+        # Maximale Bildanzahl
+        ttk.Label(self.panel, font=BECK_VIEW_FONT, text="Maximale Anzahl Bilder").grid(
+            row=2, column=0, padx=10, pady=10, sticky=tk.EW)
+        self.frame_counter = ttk.Combobox(self.panel, font=BECK_VIEW_FONT,
+                                          values=self.FRAME_COUNTS, state="readonly")
+        self.frame_counter.grid(row=2, column=1, padx=(0, 10), pady=5, sticky=tk.EW)
         self.frame_counter.current(3)
         ToolTip(self.frame_counter,
-                text="Notbremse - beendet die Digitalisierung spätestens bei Erreichen der ausgewählten Anzahl Bilder.",
-                bootstyle="INFO, INVERSE")
+                "Notbremse - beendet die Digitalisierung spätestens bei Erreichen "
+                "der ausgewählten Anzahl Bilder.")
 
-        s = ttk.Style()
-        s.configure('beck-view-gui.TCheckbutton', font=beck_view_font)
-        s.map('beck-view-gui.TCheckbutton',
-              # font=[('focus', ('Helvetica', 14, 'italic'))],
-              background=[('focus', 'white')],
-              )
-
-        self.exposure_bracketing = tkinter.BooleanVar()
-        self.exposure_bracketing.set(False)
-
-        self.exposure_bracketing_checkbutton = ttk.Checkbutton(self.panel, text="Belichtungsreihe aktivieren",
-                                                               onvalue=True, offvalue=False,
-                                                               variable=self.exposure_bracketing,
-                                                               padding="5  10",
-                                                               style='beck-view-gui.TCheckbutton'
-                                                               )
-        self.exposure_bracketing_checkbutton.grid(row=0, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
+        # Belichtungsreihe
+        self.exposure_bracketing = tk.BooleanVar(value=False)
+        self.exposure_bracketing_checkbutton = ttk.Checkbutton(
+            self.panel, text="Belichtungsreihe aktivieren (experimentell)",
+            onvalue=True, offvalue=False, variable=self.exposure_bracketing,
+            padding="5 10", style="beck-view-gui.TCheckbutton")
+        self.exposure_bracketing_checkbutton.grid(row=0, column=2, padx=(30, 0), pady=10, sticky=tk.EW)
         ToolTip(self.exposure_bracketing_checkbutton,
-                text="Belichtungsreihe aktivieren (Exposure Bracketing)",
-                bootstyle="INFO, INVERSE")
+                "Belichtungsreihe aktivieren (Exposure Bracketing) - in Arbeit")
 
-        # self.monitor = tkinter.BooleanVar()
-        # self.monitor.set(False)
-
-        # self.monitor_checkbutton = ttk.Checkbutton(self.panel, text="Monitor-Fenster anzeigen",
-        #                                           onvalue=True, offvalue=False,
-        #                                           variable=self.monitor,
-        #                                           padding="5  10",
-        #                                           style='beck-view-gui.TCheckbutton'
-        #                                           )
-        # self.monitor_checkbutton.grid(row=1, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
-        # ToolTip(self.monitor_checkbutton,
-        #        text="Vorschaufenster öffnen, in dem die digitalisierten Bilder angezeigt werden.",
-        #        bootstyle="INFO, INVERSE")
-
-        if os.name == 'nt':
-            self.display_menu = tkinter.BooleanVar()
-            self.display_menu.set(True)
-
-            self.display_menu_checkbutton = ttk.Checkbutton(self.panel, text="Einstellungsfenster anzeigen ",
-                                                            onvalue=True, offvalue=False,
-                                                            variable=self.display_menu,
-                                                            padding="5  10",
-                                                            style='beck-view-gui.TCheckbutton'
-                                                            )
-            self.display_menu_checkbutton.grid(row=2, column=2, padx=(30, 0), pady=(10, 10), sticky="ew")
+        # Nur unter Windows: DirectShow-Einstellungsdialog
+        self.display_menu = tk.BooleanVar(value=True)
+        if IS_WINDOWS:
+            self.display_menu_checkbutton = ttk.Checkbutton(
+                self.panel, text="Einstellungsfenster anzeigen",
+                onvalue=True, offvalue=False, variable=self.display_menu,
+                padding="5 10", style="beck-view-gui.TCheckbutton")
+            self.display_menu_checkbutton.grid(row=2, column=2, padx=(30, 0), pady=10, sticky=tk.EW)
             ToolTip(self.display_menu_checkbutton,
-                    text="Unter Windows separaten Dialog mit den Konfigurationsparametern der Kamera anzeigen (Direct-Show). Ansonsten wird unter Windows das MS Media Foundation API verwendet.",
-                    bootstyle="INFO, INVERSE")
+                    "Unter Windows separaten Dialog mit den Konfigurationsparametern der "
+                    "Kamera anzeigen (DirectShow). Ansonsten wird unter Windows das "
+                    "MS Media Foundation API verwendet.")
+
+        for col, weight in enumerate((0, 0, 0, 2)):
+            self.grid_columnconfigure(col, weight=weight)
 
 
 class SubprocessOutput(ttk.Labelframe):
     def __init__(self, master):
-        super().__init__(master)
+        super().__init__(master, text="Ausgabe `Beck-View-Digitize`", borderwidth=3, relief=tk.SOLID)
 
-        self.configure(borderwidth=3, text="Ausgabe `Beck-View-Digitize`", relief=SOLID)
+        self.text_output = ScrolledText(self, height=10, font=BECK_VIEW_FONT, wrap=tk.WORD,
+                                        takefocus=False, state="disabled",
+                                        **themed_text_colors())
+        self.text_output.grid(row=0, column=0, padx=10, pady=10, sticky=tk.NSEW)
 
-        # Create ScrolledText widget for displaying subprocess output
-        self.text_output = ScrolledText(self, height=10, font=beck_view_font, wrap=WORD, autohide=True, takefocus=FALSE)
-        self.text_output.grid(row=0, column=0, rowspan=10, padx=10, pady=10, sticky=NSEW)
-
-        # Configure grid to make the text_output widget expand
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
+    def append(self, text: str):
+        self.text_output.configure(state="normal")
+        self.text_output.insert(tk.END, text)
+        self.text_output.see(tk.END)
+        self.text_output.configure(state="disabled")
 
-class MainMenu(ttk.Menu):
-    def __init__(self, master):
-        super().__init__(master)
-        self.file_menu = ttk.Menu(self, tearoff=1)
-        self.file_menu.add_command(label="Neues Projekt")
-        self.file_menu.add_command(label="Letzte Projekte")
-        self.file_menu.add_command(label="Projekt schließen")
-        self.file_menu.add_command(label="Alle Projekte schließen")
-        self.file_menu.add_command(label="Projekt umbenennen")
-        self.file_menu.add_separator()
-        self.file_menu.add_command(label="Beenden", command=master.destroy)
-        self.add_cascade(label="Datei", menu=self.file_menu, underline=0)
 
-        self.window_menu = tkinter.Menu(self, tearoff=0)
-        self.window_menu.add_command(label="Normal", command=self.normal)
-        self.window_menu.add_command(label="Vollbild", command=self.maximize)
-        self.window_menu.add_command(label="Minimiert", command=self.minimize)
-        self.add_cascade(label="Fenster", menu=self.window_menu, underline=0)
+class MainMenu(tk.Menu):
+    def __init__(self, app: "Application"):
+        super().__init__(app)
+        self.app = app
+
+        file_menu = tk.Menu(self, tearoff=False)
+        file_menu.add_command(label="Neues Projekt")
+        file_menu.add_command(label="Letzte Projekte")
+        file_menu.add_command(label="Projekt schließen")
+        file_menu.add_command(label="Alle Projekte schließen")
+        file_menu.add_command(label="Projekt umbenennen")
+        file_menu.add_separator()
+        file_menu.add_command(label="Beenden", command=app.on_closing)
+        self.add_cascade(label="Datei", menu=file_menu, underline=0)
+
+        window_menu = tk.Menu(self, tearoff=False)
+        window_menu.add_command(label="Normal", command=self.normal)
+        window_menu.add_command(label="Vollbild", command=self.maximize)
+        window_menu.add_command(label="Minimiert", command=lambda: self.app.iconify())
+        self.add_cascade(label="Fenster", menu=window_menu, underline=0)
 
     def maximize(self):
-        app.state("zoomed")
+        try:
+            self.app.state("zoomed")  # Windows, macOS
+        except tk.TclError:
+            self.app.attributes("-zoomed", True)  # Linux (X11)
 
     def normal(self):
-        app.state("normal")
-
-    def minimize(self):
-        app.state("iconic")
+        try:
+            self.app.state("normal")
+            self.app.attributes("-zoomed", False)
+        except tk.TclError:
+            pass
 
 
 class GroupLayout(ttk.Frame):
-    def __init__(self, master, windows: bool):
+    MAX_LINES_PER_TICK = 200
+
+    def __init__(self, master):
         super().__init__(master)
 
-        self.windows = windows
-
-        # Create other GUI elements
         self.preferences = Preferences(self)
-        self.preferences.grid_columnconfigure(0, weight=0)
-        self.preferences.grid_columnconfigure(1, weight=0)
-        self.preferences.grid_columnconfigure(2, weight=0)
-        self.preferences.grid_columnconfigure(3, weight=2)
-        self.preferences.grid(row=0, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=EW)
+        self.preferences.grid(row=0, column=0, columnspan=3, padx=10, pady=10, sticky=tk.EW)
 
         self.output_directory = FrameOutputDirectory(self)
-        self.output_directory.grid_columnconfigure(0, weight=0)
-        self.output_directory.grid_columnconfigure(1, weight=1)
-        self.output_directory.grid_columnconfigure(2, weight=0)
-        self.output_directory.grid(row=1, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=EW)
+        self.output_directory.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky=tk.EW)
 
         self.technical_attributes = TechnicalAttributes(self)
-        self.technical_attributes.grid(row=2, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=EW)
+        self.technical_attributes.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky=tk.EW)
 
         self.subprocess_output = SubprocessOutput(self)
-        self.subprocess_output.grid(row=3, column=0, columnspan=3, padx=(10, 10), pady=(10, 10), sticky=NSEW)
+        self.subprocess_output.grid(row=3, column=0, columnspan=3, padx=10, pady=10, sticky=tk.NSEW)
 
-        self.start_button = ttk.Button(self,
-                                       text="Beck-View-Digitize starten",
+        self.start_button = ttk.Button(self, text="Beck-View-Digitize starten",
                                        style="beck-view-gui.TButton",
                                        command=self.start_digitization)
-        self.start_button.grid(row=4, column=0, columnspan=1, padx=(10, 10), pady=(10, 10), sticky=EW)
+        self.start_button.grid(row=4, column=0, padx=10, pady=10, sticky=tk.EW)
 
-        self.stop_button = ttk.Button(self,
-                                      text="Beck-View-Digitize stoppen",
+        self.stop_button = ttk.Button(self, text="Beck-View-Digitize stoppen",
                                       style="beck-view-gui.TButton",
-                                      command=self.stop_digitization)
-        self.stop_button.grid(row=4, column=1, columnspan=1, padx=(10, 10), pady=(10, 10), sticky=EW)
+                                      command=self.stop_digitization,
+                                      state="disabled")
+        self.stop_button.grid(row=4, column=1, padx=10, pady=10, sticky=tk.EW)
 
-        # Configure grid weights
         self.grid_rowconfigure(3, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
-        # Create asyncio event loop
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
+        self.process: subprocess.Popen | None = None
+        self.output_queue: queue.Queue = queue.Queue()
 
-        # Store reference to subprocess
-        self.process = None
-        self.output_task: Task
+    # ------------------------------------------------------------------ helpers
+    def log(self, text: str):
+        self.subprocess_output.append(text)
 
-    async def read_subprocess_output(self, process: asyncio.subprocess.Process):
-        # Asynchronously read subprocess output
-        while True:
-            line = await process.stdout.readline()
-            if not line:
-                break
-            self.subprocess_output.text_output.insert(tkinter.END, line.decode())
-            self.subprocess_output.text_output.see(tkinter.END)
+    def is_running(self) -> bool:
+        return self.process is not None and self.process.poll() is None
 
+    def _set_running_state(self, running: bool):
+        self.start_button.configure(state="disabled" if running else "normal")
+        self.stop_button.configure(state="normal" if running else "disabled")
+
+    def build_command(self) -> list[str]:
+        width, height = self.preferences.film_resolution.get().split(" x ")
+        command = [
+            str(DIGITIZE_PATH),
+            f"--device={self.preferences.device_var.get()}",
+            f"--width={width}",
+            f"--height={height}",
+            f"--max-count={self.preferences.frame_counter.get().split()[0]}",
+            f"--output-path={self.output_directory.get()}",
+            f"--chunk-size={self.technical_attributes.get()}",
+            "--gui",
+        ]
+        if self.preferences.exposure_bracketing.get():
+            command.append("--bracketing")
+        if IS_WINDOWS and self.preferences.display_menu.get():
+            command.append("--show-menu")
+        return command
+
+    # ------------------------------------------------------------------ start
     def start_digitization(self):
-        self.subprocess_output.text_output.insert(tkinter.END, "Beck-View-GUI - Starte Digitalisierung...\n")
+        if self.is_running():
+            self.log("Beck-View-GUI - Beck-View-Digitize läuft bereits!\n")
+            return
 
-        async def run_digitization():
-            filepath = Path.home().joinpath('PycharmProjects',
-                                            'beck-view-digitalize',
-                                            'digitize.cmd' if self.windows else 'beck-view-digitize')
-            width_height = self.preferences.film_resolution.get().split(" x ")
-            width = width_height[0]
-            height = width_height[1]
+        self.log("Beck-View-GUI - Starte Digitalisierung...\n")
 
-            command = [
-                str(filepath),
-                f"--device={self.preferences.device.get()}",
-                f"--width={width}",
-                f"--height={height}",
-                f"--max-count={self.preferences.frame_counter.get().split()[0]}",
-                f"--output-path={self.output_directory.directory_path.get()}",
-                f"--chunk-size={self.technical_attributes.batch.get()}",
-                "--gui"
-            ]
+        if not DIGITIZE_PATH.exists():
+            self.log(f"Beck-View-GUI - Programm nicht gefunden: {DIGITIZE_PATH}\n")
+            return
 
-            if self.preferences.monitor.get():
-                command.append("--show-monitor")
+        command = self.build_command()
+        self.log("Beck-View-GUI - Beck-View-Digitize wird mit folgenden Parametern "
+                 f"gestartet: {command}\n")
 
-            if self.preferences.exposure_bracketing.get():
-                command.append("--bracketing")
-
-            if os.name == 'nt' and self.preferences.display_menu.get():
-                command.append("--show-menu")
-
-            self.subprocess_output.text_output.insert(tkinter.END,
-                                                      f"Beck-View-GUI - Beck-View-Digitize wird mit folgenden Parametern gestartet: {command}\n")
-            try:
-                if self.windows:
-                    self.process = await asyncio.create_subprocess_exec(
-                        *command,
-                        stdout=asyncio.subprocess.PIPE,
-                        stderr=asyncio.subprocess.PIPE,
-                        creationflags=subprocess.REALTIME_PRIORITY_CLASS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
-                    )
-                else:
-                    self.process = await asyncio.create_subprocess_exec(
-                        *command,
-                        stdout=asyncio.subprocess.PIPE,
-                        stderr=asyncio.subprocess.PIPE,
-                        preexec_fn=os.setpgrp
-                    )
-
-                # Start reading subprocess output asynchronously
-                self.output_task = self.loop.create_task(self.read_subprocess_output(self.process))
-
-                # Wait for the process to finish
-                await self.process.wait()
-                await self.output_task
-
-                self.subprocess_output.text_output.insert(tkinter.END,
-                                                          f"Beck-View-GUI - Beck-View-Digitize wurde mit Return-Code '{self.process.returncode}' beendet. \n")
-                self.process = None
-
-            except Exception as e:
-                self.subprocess_output.text_output.insert(tkinter.END,
-                                                          f"Beck-View-GUI - Error starting subprocess: {e}\n")
-            finally:
-                self.subprocess_output.text_output.see(tkinter.END)
-
-        self.loop.create_task(run_digitization())
-
-    def stop_digitization(self):
-        if self.process:
-            self.subprocess_output.text_output.insert(tkinter.END, "Beck-View-GUI - Stoppe Beck-View-Digitize ...\n")
-            try:
-                if not self.output_task.cancelled():
-                    self.subprocess_output.text_output.insert(tkinter.END,
-                                                              "Beck-View-GUI - Beende Ausgabe von Nachrichten gesendet von Beck-View-Digitize ...\n")
-                    self.output_task.cancel()
-
-                if self.windows:
-                    self.process.send_signal(signal.CTRL_BREAK_EVENT)
-                else:
-                    self.process.terminate()
-
-                time.sleep(1)
-
-                self.subprocess_output.text_output.insert(tkinter.END, "Beck-View-GUI - Beck-View-Digitize gestoppt!\n")
-                self.process = None
-            except Exception as e:
-                self.subprocess_output.text_output.insert(tkinter.END,
-                                                          f"Beck-View-GUI - Fehler beim Stoppen von Beck-View-Digitize: {e}\n")
-            finally:
-                self.subprocess_output.text_output.see(tkinter.END)
+        popen_kwargs: dict = dict(
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # stderr in denselben Strom, sonst Pipe-Stau
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+        )
+        if IS_WINDOWS:
+            popen_kwargs["creationflags"] = (subprocess.HIGH_PRIORITY_CLASS
+                                             | subprocess.CREATE_NEW_PROCESS_GROUP
+                                             | subprocess.CREATE_NO_WINDOW)
         else:
-            self.subprocess_output.text_output.insert(tkinter.END,
-                                                      "Beck-View-GUI - Kein laufender Prozess 'Beck-View-Digitize' gefunden!\n")
-            self.subprocess_output.text_output.see(tkinter.END)
+            popen_kwargs["start_new_session"] = True
+
+        try:
+            self.process = subprocess.Popen(command, **popen_kwargs)
+        except OSError as e:
+            self.log(f"Beck-View-GUI - Fehler beim Starten des Subprozesses: {e}\n")
+            self.process = None
+            return
+
+        self.output_queue = queue.Queue()
+        threading.Thread(target=self._reader_thread,
+                         args=(self.process, self.output_queue),
+                         daemon=True).start()
+
+        self._set_running_state(True)
+        self.after(50, self._poll_output)
+
+    @staticmethod
+    def _reader_thread(process: subprocess.Popen, out_queue: queue.Queue):
+        """Läuft im Hintergrund: liest zeilenweise und meldet am Ende den Return-Code."""
+        try:
+            assert process.stdout is not None
+            for line in process.stdout:
+                out_queue.put(("line", line))
+        finally:
+            out_queue.put(("done", process.wait()))
+
+    def _poll_output(self):
+        """Läuft im GUI-Thread: leert die Queue und aktualisiert das Textfeld."""
+        finished = False
+        for _ in range(self.MAX_LINES_PER_TICK):
+            try:
+                kind, payload = self.output_queue.get_nowait()
+            except queue.Empty:
+                break
+            if kind == "line":
+                self.log(payload)
+            else:
+                self.log(f"Beck-View-GUI - Beck-View-Digitize wurde mit Return-Code "
+                         f"'{payload}' beendet.\n")
+                finished = True
+                break
+
+        if finished:
+            self.process = None
+            self._set_running_state(False)
+        else:
+            self.after(50, self._poll_output)
+
+    # ------------------------------------------------------------------- stop
+    def stop_digitization(self):
+        if not self.is_running():
+            self.log("Beck-View-GUI - Kein laufender Prozess 'Beck-View-Digitize' gefunden!\n")
+            return
+
+        self.log("Beck-View-GUI - Stoppe Beck-View-Digitize ...\n")
+        self.terminate_process()
+
+    def terminate_process(self):
+        process = self.process
+        if process is None or process.poll() is not None:
+            return
+        try:
+            if IS_WINDOWS:
+                process.send_signal(signal.CTRL_BREAK_EVENT)
+            else:
+                process.terminate()
+        except OSError as e:
+            self.log(f"Beck-View-GUI - Fehler beim Stoppen von Beck-View-Digitize: {e}\n")
+            return
+        # Reagiert der Prozess nicht, nach 5 s hart beenden
+        self.after(5000, self._force_kill, process)
+
+    def _force_kill(self, process: subprocess.Popen):
+        if process.poll() is None:
+            self.log("Beck-View-GUI - Prozess reagiert nicht, wird beendet (kill).\n")
+            try:
+                process.kill()
+            except OSError:
+                pass
 
 
-class Application(ttk.Window):
+class Application(BaseWindow):
     def __init__(self):
-        super().__init__(themename="morph")
+        if ThemedTk is not None:
+            # themebg=True: Fensterhintergrund passt zum gewählten Theme (wichtig bei dunklen Themes)
+            super().__init__(theme=THEME_NAME, themebg=True)
+        else:
+            print("ttkthemes nicht installiert - verwende Standard-Theme.", file=sys.stderr)
+            super().__init__()
 
-        self.windows = platform.system() == "Windows"
-
+        self.title("Beck View Digitalisierer")
         self.minsize(width=1280, height=800)
         self.geometry("1280x800")
-        self.title("Beck View Digitalisierer")
         self.option_add("*tearOff", False)
+        # größere Schrift in der Auswahlliste der Comboboxen
+        self.option_add("*TCombobox*Listbox.font", BECK_VIEW_FONT)
 
-        if sys.platform.startswith("win"):
-            self.iconbitmap("beck-view-gui.ico")
-        else:
-            logo = tkinter.PhotoImage(file="beck-view-logo.png")
-            self.iconphoto(True, logo)
+        self._setup_styles()  # eigene Styles erst nach dem Theme setzen
+        self._setup_icon()
 
         self.menu = MainMenu(self)
         self.config(menu=self.menu)
 
-        self.layout = GroupLayout(self, self.windows)
-        self.layout.pack(fill=BOTH, expand=YES)
+        self.layout = GroupLayout(self)
+        self.layout.pack(fill="both", expand=True)
 
-        # Integrate asyncio event loop with Tkinter
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-        self.loop = self.layout.loop
-        self.update_loop()
+    @staticmethod
+    def _setup_styles():
+        style = ttk.Style()
+        style.configure("beck-view-gui.TButton", font=BECK_VIEW_FONT)
+        style.configure("beck-view-gui.TCheckbutton", font=BECK_VIEW_FONT)
 
-    def update_loop(self):
-        self.loop.call_soon(self.loop.stop)
-        self.loop.run_forever()
-        self.after(100, self.update_loop)
+    def _setup_icon(self):
+        try:
+            if sys.platform.startswith("win"):
+                icon_file = find_asset("beck-view-gui.ico")
+                if icon_file:
+                    self.iconbitmap(str(icon_file))
+            else:
+                icon_file = find_asset("beck-view-logo.png")
+                if icon_file:
+                    self._icon = tk.PhotoImage(file=str(icon_file))
+                    self.iconphoto(True, self._icon)
+        except tk.TclError:
+            pass  # Icon fehlt oder wird nicht unterstützt - nicht kritisch
 
     def on_closing(self):
-        self.loop.call_soon(self.loop.stop)
-        self.loop.close()
+        if self.layout.is_running():
+            if not messagebox.askokcancel(
+                    "Beenden",
+                    "Beck-View-Digitize läuft noch.\nProzess stoppen und Programm beenden?",
+                    parent=self):
+                return
+            self.layout.terminate_process()
         self.destroy()
 
 
 if __name__ == "__main__":
-    app = Application()
-    app.mainloop()
+    Application().mainloop()

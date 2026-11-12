@@ -4,7 +4,10 @@ set -e
 rm -rf build dist
 rm -f *.c *.so
 
-python -m pip install --upgrade pip setuptools wheel cython pyinstaller
+python -m pip install --upgrade pip setuptools wheel cython pyinstaller tk ttkbootstrap
+
+# check availability of ttkbootstrap
+python -c "import ttkbootstrap; print('ttkbootstrap:', ttkbootstrap.__version__)"
 
 # Compile Cython extensions
 python setup.py build_ext --inplace
