@@ -5,7 +5,6 @@ Der Subprozess wird in einem Hintergrund-Thread gelesen, die Ausgabe gelangt
 über eine Queue in die GUI.
 """
 
-import os
 import platform
 import queue
 import signal
