@@ -1,2 +1,0 @@
-del beck-view-gui.build beck-view-gui.dist beck-view-gui.onefile-build
-python -m nuitka  --standalone --onefile --enable-plugin=tk-inter --windows-console-mode=disable --windows-icon-from-ico=beck-view-digitize.png -o "beck-view-gui" beck-view-gui.py
