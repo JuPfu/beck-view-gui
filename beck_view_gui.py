@@ -222,7 +222,7 @@ class Preferences(ttk.Labelframe):
         # Belichtungsreihe
         self.exposure_bracketing = tk.BooleanVar(value=False)
         self.exposure_bracketing_checkbutton = ttk.Checkbutton(
-            self.panel, text="Belichtungsreihe aktivieren (experimentell)",
+            self.panel, text="Belichtungsreihe aktivieren (experimentel)",
             onvalue=True, offvalue=False, variable=self.exposure_bracketing,
             padding="5 10", style="beck-view-gui.TCheckbutton")
         self.exposure_bracketing_checkbutton.grid(row=0, column=2, padx=(30, 0), pady=10, sticky=tk.EW)
