@@ -3,8 +3,13 @@
 tkinter/ttk mit optionalem Theme aus dem Paket ttkthemes (pip install ttkthemes).
 Der Subprozess wird in einem Hintergrund-Thread gelesen, die Ausgabe gelangt
 über eine Queue in die GUI.
+
+Darstellung: Menü "Darstellung" -> Automatisch (folgt dem System), Hell, Dunkel.
+Im Modus "Automatisch" wird der Dark-Mode von macOS, Windows und Linux
+(GNOME/KDE) erkannt und das Theme bei Änderung zur Laufzeit umgeschaltet.
 """
 
+import json
 import platform
 import queue
 import signal
@@ -21,9 +26,15 @@ try:
 except ImportError:  # GUI läuft auch ohne das Paket (dann mit Standard-Theme)
     ThemedTk = None
 
-# Theme aus ttkthemes, z. B. "arc", "equilux" (dunkel), "breeze", "adapta",
-# "yaru", "plastik", "radiance", "clearlooks", "black"
-THEME_NAME = "blue"
+# Themes aus ttkthemes. Weitere Kandidaten:
+#   hell:   "arc", "breeze", "adapta", "yaru", "plastik", "clearlooks", "blue"
+#   dunkel: "equilux", "black", "radiance"
+LIGHT_THEME = "blue"
+DARK_THEME = "equilux"
+
+THEME_MODES = ("auto", "light", "dark")
+THEME_POLL_MS = 10_000  # so oft wird im Modus "Automatisch" das System abgefragt
+SETTINGS_FILE = Path.home() / ".beck_view_gui.json"
 
 APP_DIR = Path(__file__).resolve().parent
 BECK_VIEW_FONT = ("Helvetica", 14)
@@ -37,6 +48,81 @@ DIGITIZE_PATH = Path.home().joinpath(
 DEFAULT_OUTPUT_DIR = Path("~", "Filme").expanduser()
 
 
+# ---------------------------------------------------------------------- settings
+def load_settings() -> dict:
+    try:
+        data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_settings(settings: dict) -> None:
+    try:
+        SETTINGS_FILE.write_text(json.dumps(settings, indent=2), encoding="utf-8")
+    except OSError:
+        pass  # Einstellungen sind nicht kritisch
+
+
+# ------------------------------------------------------------ dark mode detection
+def _run(command: list[str]) -> str:
+    """Führt ein Kommando aus und liefert stdout (klein geschrieben) oder ''."""
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=2)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return result.stdout.strip().lower()
+
+
+def detect_system_dark_mode() -> bool:
+    """True, wenn das Betriebssystem aktuell den dunklen Modus verwendet.
+
+    macOS:   `defaults read -g AppleInterfaceStyle` liefert "Dark" (sonst Fehler/leer).
+             Das gilt auch für die Einstellung "Automatisch" (Dunkel ab Abend).
+    Windows: Registry HKCU\\...\\Themes\\Personalize\\AppsUseLightTheme (0 = dunkel).
+    Linux:   GNOME/GTK per gsettings (color-scheme, sonst Namen des GTK-Themes),
+             KDE Plasma per kreadconfig (Name des Farbschemas).
+    Lässt sich nichts ermitteln, wird "hell" angenommen.
+    """
+    system = platform.system()
+
+    if system == "Darwin":
+        return _run(["defaults", "read", "-g", "AppleInterfaceStyle"]) == "dark"
+
+    if system == "Windows":
+        try:
+            import winreg
+            key_path = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+                return winreg.QueryValueEx(key, "AppsUseLightTheme")[0] == 0
+        except OSError:
+            return False
+
+    # Linux / BSD
+    scheme = _run(["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"])
+    if "prefer-dark" in scheme:
+        return True
+    if "prefer-light" in scheme:
+        return False
+    gtk_theme = _run(["gsettings", "get", "org.gnome.desktop.interface", "gtk-theme"])
+    if gtk_theme:
+        return "dark" in gtk_theme
+    for tool in ("kreadconfig6", "kreadconfig5"):
+        color_scheme = _run([tool, "--group", "General", "--key", "ColorScheme"])
+        if color_scheme:
+            return "dark" in color_scheme
+    return False
+
+
+def resolve_theme_name(mode: str) -> str:
+    if mode == "dark":
+        return DARK_THEME
+    if mode == "light":
+        return LIGHT_THEME
+    return DARK_THEME if detect_system_dark_mode() else LIGHT_THEME
+
+
+# ------------------------------------------------------------------------ helpers
 def find_asset(name: str) -> Path | None:
     """Sucht eine Ressource (Logo, Icon) neben dem Skript und im aktuellen Arbeitsverzeichnis."""
     for folder in (APP_DIR, Path.cwd()):
@@ -239,7 +325,7 @@ class Preferences(ttk.Labelframe):
             row=1, column=2, padx=30, pady=10, sticky=tk.W)
         self.camera_fps = ttk.Combobox(self.panel, font=BECK_VIEW_FONT,
                                             values=self.CAMERA_FPS, state="readonly")
-        self.camera_fps.grid(row=1, column=2, padx=5, pady=10, sticky=tk.E)
+        self.camera_fps.grid(row=1, column=2, padx=(0, 10), pady=10, sticky=tk.E)
         self.camera_fps.current(1)
         ToolTip(self.camera_fps, "Bilder pro Sekunde mit der die Kamera arbeitet. "
                                             "Das ist unabhängig von der Aufnahmegeschwindigkeit "
@@ -252,7 +338,7 @@ class Preferences(ttk.Labelframe):
 
         self.capture_min_delay_ms = ttk.Spinbox(self.panel, font=BECK_VIEW_FONT, from_=5, to=99, wrap=True,
                                  textvariable=self.capture_min_delay_ms, state="readonly")
-        self.capture_min_delay_ms.grid(row=2, column=2, padx=10, pady=10, sticky=tk.E)
+        self.capture_min_delay_ms.grid(row=2, column=2, padx=(0, 10), pady=10, sticky=tk.E)
         self.capture_min_delay_ms.set(value=60)
         ToolTip(self.capture_min_delay_ms,
                 "Minimale Zeitdauer nach dem OK-Trigger bevor das ruhende Bild vor "
@@ -274,6 +360,9 @@ class Preferences(ttk.Labelframe):
         for col, weight in enumerate((0, 0, 2, 2)):
             self.grid_columnconfigure(col, weight=weight)
 
+    def comboboxes(self) -> tuple[ttk.Combobox, ...]:
+        return self.film_resolution, self.frame_counter, self.camera_fps
+
 
 class SubprocessOutput(ttk.Labelframe):
     def __init__(self, master):
@@ -293,8 +382,18 @@ class SubprocessOutput(ttk.Labelframe):
         self.text_output.see(tk.END)
         self.text_output.configure(state="disabled")
 
+    def refresh_colors(self):
+        """Nach einem Theme-Wechsel: klassisches tk-Widget an das ttk-Theme anpassen."""
+        self.text_output.configure(**themed_text_colors())
+
 
 class MainMenu(tk.Menu):
+    MODE_LABELS = (
+        ("auto", "Automatisch (System folgen)"),
+        ("light", "Hell"),
+        ("dark", "Dunkel"),
+    )
+
     def __init__(self, app: "Application"):
         super().__init__(app)
         self.app = app
@@ -306,10 +405,16 @@ class MainMenu(tk.Menu):
         file_menu.add_command(label="Alle Projekte schließen")
         file_menu.add_command(label="Projekt umbenennen")
         file_menu.add_separator()
-        file_menu.add_command(label="Theme umschalten", command=self.apply_theme())
-        file_menu.add_separator()
         file_menu.add_command(label="Beenden", command=app.on_closing)
         self.add_cascade(label="Datei", menu=file_menu, underline=0)
+
+        # Darstellung: ohne ttkthemes sind die Einträge deaktiviert
+        view_menu = tk.Menu(self, tearoff=False)
+        state = "normal" if ThemedTk is not None else "disabled"
+        for mode, label in self.MODE_LABELS:
+            view_menu.add_radiobutton(label=label, value=mode, variable=app.theme_mode,
+                                      command=app.on_theme_mode_changed, state=state)
+        self.add_cascade(label="Darstellung", menu=view_menu, underline=0)
 
         window_menu = tk.Menu(self, tearoff=False)
         window_menu.add_command(label="Normal", command=self.normal)
@@ -330,48 +435,12 @@ class MainMenu(tk.Menu):
         except tk.TclError:
             pass
 
-    def apply_theme(self):
-        theme = self.app.themes[self.app.current_theme]
-
-        # Apply to root window
-        self.root.configure(bg=theme["bg"])
-
-        # Apply to main frame
-        self.main_frame.configure(bg=theme["bg"])
-
-        # Apply to labels
-        self.title_label.configure(bg=theme["bg"], fg=theme["fg"])
-        self.info_label.configure(bg=theme["bg"], fg=theme["fg"])
-
-        # Apply to button
-        self.theme_button.configure(
-            bg=theme["button_bg"],
-            fg=theme["button_fg"],
-            activebackground=theme["button_bg"],
-            activeforeground=theme["button_fg"]
-        )
 
 class GroupLayout(ttk.Frame):
     MAX_LINES_PER_TICK = 200
 
     def __init__(self, master):
         super().__init__(master)
-
-        self.themes = {
-            "light": {
-                "bg": "#ffffff",
-                "fg": "#000000",
-                "button_bg": "#e1e1e1",
-                "button_fg": "#000000"
-            },
-            "dark": {
-                "bg": "#2b2b2b",
-                "fg": "#ffffff",
-                "button_bg": "#404040",
-                "button_fg": "#ffffff"
-            }
-        }
-        self.current_theme = "light"
 
         self.preferences = Preferences(self)
         self.preferences.grid(row=0, column=0, columnspan=3, padx=10, pady=10, sticky=tk.EW)
@@ -413,6 +482,10 @@ class GroupLayout(ttk.Frame):
     def _set_running_state(self, running: bool):
         self.start_button.configure(state="disabled" if running else "normal")
         self.stop_button.configure(state="normal" if running else "disabled")
+
+    def refresh_theme_colors(self):
+        """Wird von Application nach jedem Theme-Wechsel aufgerufen."""
+        self.subprocess_output.refresh_colors()
 
     def build_command(self) -> list[str]:
         width, height = self.preferences.film_resolution.get().split(" x ")
@@ -547,12 +620,22 @@ class GroupLayout(ttk.Frame):
 
 class Application(BaseWindow):
     def __init__(self):
+        self.settings = load_settings()
+        mode = self.settings.get("theme_mode", "auto")
+        if mode not in THEME_MODES:
+            mode = "auto"
+        initial_theme = resolve_theme_name(mode)
+
         if ThemedTk is not None:
             # themebg=True: Fensterhintergrund passt zum gewählten Theme (wichtig bei dunklen Themes)
-            super().__init__(theme=THEME_NAME, themebg=True)
+            super().__init__(theme=initial_theme, themebg=True)
         else:
-            print("ttkthemes nicht installiert - verwende Standard-Theme.", file=sys.stderr)
+            print("ttkthemes nicht installiert - verwende Standard-Theme "
+                  "(Umschalten hell/dunkel nicht möglich).", file=sys.stderr)
             super().__init__()
+
+        self.theme_mode = tk.StringVar(value=mode)
+        self._applied_theme = initial_theme if ThemedTk is not None else None
 
         self.title("Beck View Digitalisierer")
         self.minsize(width=1280, height=800)
@@ -569,8 +652,50 @@ class Application(BaseWindow):
 
         self.layout = GroupLayout(self)
         self.layout.pack(fill="both", expand=True)
+        self._restyle_comboboxes()
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        # Im Modus "Automatisch" regelmäßig das System abfragen
+        self.after(THEME_POLL_MS, self._poll_system_theme)
+
+    # ---------------------------------------------------------------- theming
+    def on_theme_mode_changed(self):
+        mode = self.theme_mode.get()
+        self.settings["theme_mode"] = mode
+        save_settings(self.settings)
+        self._apply_theme(resolve_theme_name(mode))
+
+    def _poll_system_theme(self):
+        if self.theme_mode.get() == "auto":
+            self._apply_theme(resolve_theme_name("auto"))
+        self.after(THEME_POLL_MS, self._poll_system_theme)
+
+    def _apply_theme(self, name: str):
+        if ThemedTk is None or name == self._applied_theme:
+            return
+        try:
+            self.set_theme(name)
+        except tk.TclError as e:
+            print(f"Theme '{name}' konnte nicht gesetzt werden: {e}", file=sys.stderr)
+            return
+        self._applied_theme = name
+        self._setup_styles()  # Styles gelten pro Theme -> nach dem Wechsel neu setzen
+        self.layout.refresh_theme_colors()
+        self._restyle_comboboxes()
+
+    def _restyle_comboboxes(self):
+        """Die Aufklapplisten der Comboboxen sind klassische tk-Listboxen und folgen dem
+        ttk-Theme nicht von selbst."""
+        colors = themed_text_colors()
+        for combo in self.layout.preferences.comboboxes():
+            try:
+                popdown = str(self.tk.call("ttk::combobox::PopdownWindow", combo))
+                self.tk.call(f"{popdown}.f.l", "configure",
+                             "-background", colors["background"],
+                             "-foreground", colors["foreground"])
+            except tk.TclError:
+                pass
 
     @staticmethod
     def _setup_styles():
