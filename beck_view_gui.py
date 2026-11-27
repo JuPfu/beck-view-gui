@@ -321,27 +321,28 @@ class Preferences(ttk.Labelframe):
                 "Belichtungsreihe aktivieren (Exposure Bracketing) - in Arbeit")
 
         # Bilder pro Sekunde
-        ttk.Label(self.panel, font=BECK_VIEW_FONT, text="BPS").grid(
-            row=1, column=2, padx=30, pady=10, sticky=tk.W)
-        self.camera_fps = ttk.Combobox(self.panel, font=BECK_VIEW_FONT,
-                                            values=self.CAMERA_FPS, state="readonly")
+        self.camera_fps_value = tk.IntVar(value=30)
+
+        self.camera_fps_label = ttk.Label(self.panel, font=BECK_VIEW_FONT, text="BPS")
+        self.camera_fps_label.grid(row=1, column=2, padx=30, pady=10, sticky=tk.W)
+
+        self.camera_fps = ttk.Spinbox(self.panel, font=BECK_VIEW_FONT, from_=30, to=120, wrap=True,
+                                 textvariable=self.camera_fps_value, state="readonly")
         self.camera_fps.grid(row=1, column=2, padx=(0, 10), pady=10, sticky=tk.E)
-        self.camera_fps.current(1)
         ToolTip(self.camera_fps, "Bilder pro Sekunde mit der die Kamera arbeitet. "
                                             "Das ist unabhängig von der Aufnahmegeschwindigkeit "
                                             "des Projektors.")
 
-        self.capture_min_delay_ms = tk.IntVar(value=60)
+        self.capture_min_delay_ms_value = tk.IntVar(value=60)
 
         self.capture_min_delay_ms_label = ttk.Label(self.panel, font=BECK_VIEW_FONT, text="Verzögerung")
         self.capture_min_delay_ms_label.grid(row=2, column=2, padx=30, pady=10, sticky=tk.W)
 
         self.capture_min_delay_ms = ttk.Spinbox(self.panel, font=BECK_VIEW_FONT, from_=5, to=99, wrap=True,
-                                 textvariable=self.capture_min_delay_ms, state="readonly")
+                                 textvariable=self.capture_min_delay_ms_value, state="readonly")
         self.capture_min_delay_ms.grid(row=2, column=2, padx=(0, 10), pady=10, sticky=tk.E)
-        self.capture_min_delay_ms.set(value=60)
         ToolTip(self.capture_min_delay_ms,
-                "Minimale Zeitdauer nach dem OK-Trigger bevor das ruhende Bild vor "
+                "Minimale Zeitdauer in Millisekunden nach dem OK-Trigger bevor das ruhende Bild vor "
                 "dem Projektor als valide akzeptiert wird.")
 
         # Nur unter Windows: DirectShow-Einstellungsdialog
@@ -361,7 +362,7 @@ class Preferences(ttk.Labelframe):
             self.grid_columnconfigure(col, weight=weight)
 
     def comboboxes(self) -> tuple[ttk.Combobox, ...]:
-        return self.film_resolution, self.frame_counter, self.camera_fps
+        return self.film_resolution, self.frame_counter, self.camera_fps, self.capture_min_delay_ms
 
 
 class SubprocessOutput(ttk.Labelframe):
@@ -497,8 +498,8 @@ class GroupLayout(ttk.Frame):
             f"--max-count={self.preferences.frame_counter.get().split()[0]}",
             f"--output-path={self.output_directory.get()}",
             f"--chunk-size={self.technical_attributes.get()}",
-            f"--fps={self.preferences.camera_fps.get()}",
-            f"--capture_min_delay_ms={self.preferences.capture_min_delay_ms.get()}",
+            f"--camera-fps={self.preferences.camera_fps_value.get()}",
+            f"--capture-min-delay-ms={self.preferences.capture_min_delay_ms_value.get()}",
             "--gui",
         ]
         if self.preferences.exposure_bracketing.get():
