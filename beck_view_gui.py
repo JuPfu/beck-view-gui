@@ -520,8 +520,8 @@ class GroupLayout(ttk.Frame):
             return
 
         command = self.build_command()
-        self.log("Beck-View-GUI - Beck-View-Digitize wird mit folgenden Parametern "
-                 f"gestartet: {command}\n")
+
+        self.log(f"Beck-View-GUI - Beck-View-Digitize wird wie folgt gestartet: {" ".join(command)}\n")
 
         popen_kwargs: dict = dict(
             stdout=subprocess.PIPE,
