@@ -172,6 +172,11 @@ class Preferences(ttk.Labelframe):
         "43600 (180-m-Kassette)",
         "60000 (250-m-Kassette)",
     ]
+    CAMERA_FPS = [
+        "30 Bilder/Sekunde",
+        "60 Bilder/Sekunde",
+        "120 Bilder/Sekunde",
+    ]
 
     def __init__(self, master):
         super().__init__(master, text="Einstellungen", borderwidth=3, relief=tk.SOLID)
@@ -191,11 +196,11 @@ class Preferences(ttk.Labelframe):
         self.panel.grid(row=0, column=1, rowspan=2, columnspan=4, sticky=tk.NSEW)
 
         # Gerätenummer
-        self.device_var = tk.IntVar(value=0)
+        self.device_id = tk.IntVar(value=0)
         ttk.Label(self.panel, font=BECK_VIEW_FONT, text="Gerätenummer der Kamera").grid(
             row=0, column=0, padx=10, pady=10, sticky=tk.EW)
         self.device = ttk.Spinbox(self.panel, font=BECK_VIEW_FONT, from_=0, to=9, wrap=True,
-                                  textvariable=self.device_var, state="readonly")
+                                  textvariable=self.device_id, state="readonly")
         self.device.grid(row=0, column=1, padx=(0, 10), pady=10, sticky=tk.EW)
         ToolTip(self.device, "Vom System vergebene Geräte-Id.\nZulässiger Wertebereich ist 0 bis 9.")
 
@@ -229,6 +234,30 @@ class Preferences(ttk.Labelframe):
         ToolTip(self.exposure_bracketing_checkbutton,
                 "Belichtungsreihe aktivieren (Exposure Bracketing) - in Arbeit")
 
+        # Bilder pro Sekunde
+        ttk.Label(self.panel, font=BECK_VIEW_FONT, text="BPS").grid(
+            row=1, column=2, padx=30, pady=10, sticky=tk.W)
+        self.camera_fps = ttk.Combobox(self.panel, font=BECK_VIEW_FONT,
+                                            values=self.CAMERA_FPS, state="readonly")
+        self.camera_fps.grid(row=1, column=2, padx=5, pady=10, sticky=tk.E)
+        self.camera_fps.current(1)
+        ToolTip(self.camera_fps, "Bilder pro Sekunde mit der die Kamera arbeitet. "
+                                            "Das ist unabhängig von der Aufnahmegeschwindigkeit "
+                                            "des Projektors.")
+
+        self.capture_min_delay_ms = tk.IntVar(value=60)
+
+        self.capture_min_delay_ms_label = ttk.Label(self.panel, font=BECK_VIEW_FONT, text="Verzögerung")
+        self.capture_min_delay_ms_label.grid(row=2, column=2, padx=30, pady=10, sticky=tk.W)
+
+        self.capture_min_delay_ms = ttk.Spinbox(self.panel, font=BECK_VIEW_FONT, from_=5, to=99, wrap=True,
+                                 textvariable=self.capture_min_delay_ms, state="readonly")
+        self.capture_min_delay_ms.grid(row=2, column=2, padx=10, pady=10, sticky=tk.E)
+        self.capture_min_delay_ms.set(value=60)
+        ToolTip(self.capture_min_delay_ms,
+                "Minimale Zeitdauer nach dem OK-Trigger bevor das ruhende Bild vor "
+                "dem Projektor als valide akzeptiert wird.")
+
         # Nur unter Windows: DirectShow-Einstellungsdialog
         self.display_menu = tk.BooleanVar(value=True)
         if IS_WINDOWS:
@@ -242,7 +271,7 @@ class Preferences(ttk.Labelframe):
                     "Kamera anzeigen (DirectShow). Ansonsten wird unter Windows das "
                     "MS Media Foundation API verwendet.")
 
-        for col, weight in enumerate((0, 0, 0, 2)):
+        for col, weight in enumerate((0, 0, 2, 2)):
             self.grid_columnconfigure(col, weight=weight)
 
 
@@ -277,6 +306,8 @@ class MainMenu(tk.Menu):
         file_menu.add_command(label="Alle Projekte schließen")
         file_menu.add_command(label="Projekt umbenennen")
         file_menu.add_separator()
+        file_menu.add_command(label="Theme umschalten", command=self.apply_theme())
+        file_menu.add_separator()
         file_menu.add_command(label="Beenden", command=app.on_closing)
         self.add_cascade(label="Datei", menu=file_menu, underline=0)
 
@@ -299,12 +330,48 @@ class MainMenu(tk.Menu):
         except tk.TclError:
             pass
 
+    def apply_theme(self):
+        theme = self.app.themes[self.app.current_theme]
+
+        # Apply to root window
+        self.root.configure(bg=theme["bg"])
+
+        # Apply to main frame
+        self.main_frame.configure(bg=theme["bg"])
+
+        # Apply to labels
+        self.title_label.configure(bg=theme["bg"], fg=theme["fg"])
+        self.info_label.configure(bg=theme["bg"], fg=theme["fg"])
+
+        # Apply to button
+        self.theme_button.configure(
+            bg=theme["button_bg"],
+            fg=theme["button_fg"],
+            activebackground=theme["button_bg"],
+            activeforeground=theme["button_fg"]
+        )
 
 class GroupLayout(ttk.Frame):
     MAX_LINES_PER_TICK = 200
 
     def __init__(self, master):
         super().__init__(master)
+
+        self.themes = {
+            "light": {
+                "bg": "#ffffff",
+                "fg": "#000000",
+                "button_bg": "#e1e1e1",
+                "button_fg": "#000000"
+            },
+            "dark": {
+                "bg": "#2b2b2b",
+                "fg": "#ffffff",
+                "button_bg": "#404040",
+                "button_fg": "#ffffff"
+            }
+        }
+        self.current_theme = "light"
 
         self.preferences = Preferences(self)
         self.preferences.grid(row=0, column=0, columnspan=3, padx=10, pady=10, sticky=tk.EW)
@@ -351,12 +418,14 @@ class GroupLayout(ttk.Frame):
         width, height = self.preferences.film_resolution.get().split(" x ")
         command = [
             str(DIGITIZE_PATH),
-            f"--device={self.preferences.device_var.get()}",
+            f"--device={self.preferences.device_id.get()}",
             f"--width={width}",
             f"--height={height}",
             f"--max-count={self.preferences.frame_counter.get().split()[0]}",
             f"--output-path={self.output_directory.get()}",
             f"--chunk-size={self.technical_attributes.get()}",
+            f"--fps={self.preferences.camera_fps.get()}",
+            f"--capture_min_delay_ms={self.preferences.capture_min_delay_ms.get()}",
             "--gui",
         ]
         if self.preferences.exposure_bracketing.get():
